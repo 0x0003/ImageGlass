@@ -44,9 +44,9 @@ public static class Config
 {
 
     #region Internal properties
-    private static readonly Source _source = new();
     private static CancellationTokenSource _requestUpdatingColorModeCancelToken = new();
     private static bool _isDarkMode = WinColorsApi.IsDarkMode;
+    private static float Version = 9;
 
 
     /// <summary>
@@ -601,12 +601,12 @@ public static class Config
     /// <summary>
     /// Gets, sets state of main window
     /// </summary>
-    public static WindowState FrmMainState { get; set; } = WindowState.Normal;
+    public static FormWindowState FrmMainState { get; set; } = FormWindowState.Normal;
 
     /// <summary>
     /// Gets, sets state of settings window
     /// </summary>
-    public static WindowState FrmSettingsState { get; set; } = WindowState.Normal;
+    public static FormWindowState FrmSettingsState { get; set; } = FormWindowState.Normal;
 
     /// <summary>
     /// Gets, sets image loading order
@@ -678,6 +678,10 @@ public static class Config
     {
 #nullable disable
         items ??= Source.LoadUserConfigs();
+
+        // get user config version
+        Version = items.GetValue<float>($"_Metadata:{nameof(Version)}");
+            
 
         // save the config for all tools
         ToolSettings = items.GetValueObj(nameof(ToolSettings)).GetValue(nameof(ToolSettings), new ExpandoObject());
@@ -1000,6 +1004,9 @@ public static class Config
         // listen to system events
         SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
 
+        // migrate user config file if config version is changed
+        MigrateUserConfigFile();
+
 #nullable enable 
     }
 
@@ -1025,8 +1032,8 @@ public static class Config
 
         var metadata = new ConfigMetadata()
         {
-            Description = _source.Description,
-            Version = _source.Version,
+            Description = Source.Description,
+            Version = Source.Version,
         };
 
         _ = settings.TryAdd("_Metadata", metadata);
@@ -1561,8 +1568,11 @@ public static class Config
     /// <exception cref="InvalidDataException"></exception>
     private static IgTheme? FindAndLoadThemePack(string themeFolderName, bool useFallBackTheme, bool throwIfThemeInvalid)
     {
+        // support 400% DPI
+        var iconHeight = Config.ToolbarIconHeight * 4;
+
         // look for theme pack in the Config dir
-        var th = new IgTheme(App.ConfigDir(PathType.Dir, Dir.Themes, themeFolderName));
+        var th = new IgTheme(App.ConfigDir(PathType.Dir, Dir.Themes, themeFolderName), iconHeight);
         var themeConfigPath = th.ConfigFilePath;
 
         if (!th.IsValid)
@@ -1570,7 +1580,7 @@ public static class Config
             // look for theme pack in the Startup dir
             th.Dispose();
             th = null;
-            th = new(App.StartUpDir(Dir.Themes, themeFolderName));
+            th = new(App.StartUpDir(Dir.Themes, themeFolderName), iconHeight);
 
             // cannot find theme, use fall back theme
             if (!th.IsValid && useFallBackTheme)
@@ -1579,7 +1589,7 @@ public static class Config
                 th = null;
 
                 // load default theme
-                th = new(App.StartUpDir(Dir.Themes, Const.DEFAULT_THEME));
+                th = new(App.StartUpDir(Dir.Themes, Const.DEFAULT_THEME), iconHeight);
             }
         }
 
@@ -2073,6 +2083,43 @@ public static class Config
 
 
     #region Private functions
+
+    // Config file migration
+    #region Config file migration
+
+    /// <summary>
+    /// Migrate user config file
+    /// </summary>
+    private static void MigrateUserConfigFile()
+    {
+        // no change
+        if (Source.Version <= Version) return;
+
+
+        // migrate from 9
+        if (Version == 9)
+        {
+            // MouseClickActions
+            if (MouseClickActions.TryGetValue(MouseClickEvent.WheelClick, out var action1)
+                && action1?.ToggleOn?.Executable == "IG_Refresh")
+            {
+                MouseClickActions[MouseClickEvent.WheelClick] = new(new("MnuRefresh"));
+            }
+            if (MouseClickActions.TryGetValue(MouseClickEvent.XButton1Click, out var action2)
+                && action2?.ToggleOn?.Executable == "IG_ViewPreviousImage")
+            {
+                MouseClickActions[MouseClickEvent.XButton1Click] = new(new("MnuViewPrevious"));
+            }
+            if (MouseClickActions.TryGetValue(MouseClickEvent.XButton2Click, out var action3)
+                && action3?.ToggleOn?.Executable == "IG_ViewNextImage")
+            {
+                MouseClickActions[MouseClickEvent.XButton2Click] = new(new("MnuViewNext"));
+            }
+        }
+    }
+
+    #endregion // Config file migration
+
 
     // ImageFormats
     #region ImageFormats

@@ -295,8 +295,8 @@ public class IgLang : IDictionary<string, string>
             { $"_.Metadata._{nameof(IgMetadata.ExifRatingPercent)}", "Rating" }, //v9.0
             { $"_.Metadata._{nameof(IgMetadata.ColorSpace)}", "Color space" }, //v9.0
             { $"_.Metadata._{nameof(IgMetadata.ColorProfile)}", "Color profile" }, //v9.0
-            { $"_.Metadata._{nameof(IgMetadata.ExifDateTime)}", "EXIF DateTime" }, //v9.0
-            { $"_.Metadata._{nameof(IgMetadata.ExifDateTimeOriginal)}", "EXIF DateTimeOriginal" }, //v9.0
+            { $"_.Metadata._{nameof(IgMetadata.ExifDateTime)}", "EXIF: DateTime" }, //v9.0
+            { $"_.Metadata._{nameof(IgMetadata.ExifDateTimeOriginal)}", "EXIF: DateTimeOriginal" }, //v9.0
 
             // image info
             { $"_.{nameof(ImageInfo)}._{nameof(ImageInfo.ListCount)}", "{0} file(s)" }, //v9.0
@@ -318,9 +318,11 @@ public class IgLang : IDictionary<string, string>
             { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.Random)}", "Random" }, //v8.0
             { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.FileSize)}", "File size" }, //v8.0
             { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.Extension)}", "Extension" }, //v8.0
-            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.CreationTime)}", "Date created" }, //v8.0
-            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.LastAccessTime)}", "Last access time" }, //v8.0
-            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.LastWriteTime)}", "Last write time" }, //v8.0
+            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.DateCreated)}", "Date created" }, //v8.0
+            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.DateAccessed)}", "Date accessed" }, //v8.0
+            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.DateModified)}", "Date modified" }, //v8.0
+            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.ExifDateTaken)}", "EXIF: Date taken" }, //v9.0
+            { $"_.{nameof(ImageOrderBy)}._{nameof(ImageOrderBy.ExifRating)}", "EXIF: Rating" }, //v9.0
 
 
             // ImageOrderType
@@ -442,13 +444,6 @@ public class IgLang : IDictionary<string, string>
             { "FrmMain.MnuImage", "Image" }, //v7.0
 
             { "FrmMain.MnuViewChannels", "View channels" }, //v7.0
-            { "FrmMain.MnuViewChannels._All", "All" }, //v7.0
-            { "FrmMain.MnuViewChannels._Red", "Red" }, //v7.0
-            { "FrmMain.MnuViewChannels._Green", "Green" }, //v7.0
-            { "FrmMain.MnuViewChannels._Blue", "Blue" }, //v7.0
-            { "FrmMain.MnuViewChannels._Black", "Black" }, //v7.0
-            { "FrmMain.MnuViewChannels._Alpha", "Alpha" }, //v7.0
-
             { "FrmMain.MnuLoadingOrders", "Loading orders" }, //v8.0
 
             { "FrmMain.MnuRotateLeft", "Rotate left" }, //v7.5
@@ -507,6 +502,7 @@ public class IgLang : IDictionary<string, string>
             { "FrmMain.MnuToggleTopMost", "Keep window always on top" }, //v3.2
             { "FrmMain.MnuToggleTopMost._Enable", "Enabled window always on top" }, // v9.0
             { "FrmMain.MnuToggleTopMost._Disable", "Disabled window always on top" }, // v9.0
+            { "FrmMain.MnuChangeBackgroundColor", "Change background color…" }, // v9.0
             #endregion // Layout
 
             #region Tools
@@ -570,7 +566,7 @@ public class IgLang : IDictionary<string, string>
             { "FrmAbout._Version", "Version:" },
             { "FrmAbout._License", "Software license" },
             { "FrmAbout._Privacy", "Privacy policy" },
-            { "FrmAbout._Thanks", "Special thanks to:" },
+            { "FrmAbout._Thanks", "Special thanks to" },
             { "FrmAbout._LogoDesigner", "Logo designer:" },
             { "FrmAbout._Collaborator", "Collaborator:" },
             { "FrmAbout._Contact", "Contact" },
@@ -584,6 +580,8 @@ public class IgLang : IDictionary<string, string>
             #region FrmSettings
 
             { "FrmSettings._ResetSettings", "Reset settings" }, // v9.1
+            { "FrmSettings._UnmanagedSettingReminder", "This setting is not managed by ImageGlass. Don't forget to disable it before you remove or relocate the app because ImageGlass does not handle this automatically." }, // v9.1
+
 
             #region Nav bar
             { "FrmSettings.Nav._General", "General" },
@@ -614,6 +612,15 @@ public class IgLang : IDictionary<string, string>
             { "FrmSettings._ShowWelcomeImage", "Show welcome image" },
             { "FrmSettings._ShouldOpenLastSeenImage", "Open the last seen image" },
 
+            { "FrmSettings._StartupBoost", "Startup Boost" }, // v9.1
+            { "FrmSettings._StartupBoost._Description", "Preload and run ImageGlass in the background for a few seconds during Windows startup to accelerate the first launch." }, // v9.1
+            { "FrmSettings._StartupBoost._Enabled", "Startup Boost is enabled" }, // v9.1
+            { "FrmSettings._StartupBoost._Disabled", "Startup Boost is disabled" }, // v9.1
+            { "FrmSettings._StartupBoost._Error", "Could not change Startup Boost setting" }, // v9.1
+            { "FrmSettings._EnableStartupBoost", "Enable Startup Boost" }, // v9.1
+            { "FrmSettings._DisableStartupBoost", "Disable Startup Boost" }, // v9.1
+            { "FrmSettings._OpenStartupAppsSetting", "Open Startup apps setting" }, // v9.1
+
             // General > Real-time update
             { "FrmSettings._RealTimeFileUpdate", "Real-time file update" },
             { "FrmSettings._EnableRealTimeFileUpdate", "Monitor file changes in the viewing folder and update in realtime" },
@@ -628,7 +635,6 @@ public class IgLang : IDictionary<string, string>
             { "FrmSettings._ImageInfoTags", "Image information tags" },
             { "FrmSettings._AvailableImageInfoTags", "Available tags:" },
             #endregion // Tab General
-
 
             
             #region Tab Image
@@ -790,7 +796,7 @@ public class IgLang : IDictionary<string, string>
 
             // File type associations > Default photo viewer
             { "FrmSettings._DefaultPhotoViewer", "Default photo viewer" },
-            { "FrmSettings._DefaultPhotoViewer._Description", "You can set ImageGlass as your default photo viewer using the buttons below. Remember to manually reset it if you uninstall ImageGlass, as the installer does not handle this task automatically." },
+            { "FrmSettings._DefaultPhotoViewer._Description", "Register the supported formats of ImageGlass with Windows. You might need to open the Default apps settings and manually select ImageGlass from the list for it to take effect." },
             { "FrmSettings._MakeDefault", "Make default" },
             { "FrmSettings._RemoveDefault", "Remove default" },
             { "FrmSettings._OpenDefaultAppsSetting", "Open Default apps setting" },
@@ -926,7 +932,6 @@ public class IgLang : IDictionary<string, string>
             // menu
             { "FrmSlideshow.MnuPauseResumeSlideshow", "Pause/resume slideshow" }, // v9.0
             { "FrmSlideshow.MnuExitSlideshow", "Exit slideshow" }, // v9.0
-            { "FrmSlideshow.MnuChangeBackgroundColor", "Change background color…" }, // v9.0
 
             { "FrmSlideshow.MnuToggleCountdown", "Show slideshow countdown" }, // v9.0
             { "FrmSlideshow.MnuZoomModes", "Zoom modes" }, // v9.0

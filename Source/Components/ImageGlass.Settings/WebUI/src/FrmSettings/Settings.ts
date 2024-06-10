@@ -72,6 +72,17 @@ export default class Settings {
     }
 
 
+    // load icon element: <i icon="">
+    queryAll('i[icon]').forEach(el => {
+      const iconName = el.getAttribute('icon');
+      const iconSvg = _pageSettings.icons[iconName];
+
+      if (iconSvg) {
+        el.innerHTML = iconSvg;
+      }
+    });
+
+
     // load specific settings
     TabGeneral.loadSettings();
     TabImage.loadSettings();
@@ -124,7 +135,7 @@ export default class Settings {
    */
   private static addGeneralEvents() {
     query('#LnkHelp').addEventListener('click', () => post('LnkHelp'), false);
-    // query('#LnkResetSettings').addEventListener('click', () => post('LnkResetSettings'), false);
+    query('#LnkResetSettings').addEventListener('click', () => post('LnkResetSettings'), false);
 
     query('#BtnCancel').addEventListener('click', () => post('BtnCancel'), false);
 

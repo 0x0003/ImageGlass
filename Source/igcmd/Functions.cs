@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using igcmd.Tools;
 using ImageGlass.Base;
+using ImageGlass.Base.Photoing.Codecs;
 using ImageGlass.Base.WinApi;
 using ImageGlass.Settings;
 using System.IO.Compression;
@@ -87,9 +88,13 @@ public static class Functions
 
             if (Program.ShowUi)
             {
-                _ = Config.ShowInfo(null,
+                var note = enable ? Config.Language["FrmSettings._UnmanagedSettingReminder"] : "";
+
+                _ = Config.ShowWarning(null,
                     title: Config.Language[langPath],
-                    heading: Config.Language[$"{langPath}._Success"]);
+                    heading: Config.Language[$"{langPath}._Success"],
+                    note: note,
+                    icon: ShellStockIcon.SIID_INFO);
             }
         }, (error) =>
         {
@@ -309,4 +314,56 @@ public static class Functions
         return exitCode;
     }
 
+
+    /// <summary>
+    /// Performs lossless compression.
+    /// </summary>
+    public static IgExitCode LosslessCompressImage(string imgPath)
+    {
+        return Run(() =>
+        {
+            _ = PhotoCodec.LosslessCompress(imgPath);
+        }, (error) =>
+        {
+            _ = Config.ShowError(null,
+                description: imgPath,
+                title: Config.Language["FrmMain.MnuLosslessCompression"],
+                heading: error.Message);
+        });
+    }
+
+
+    /// <summary>
+    /// Sets Startup Boost.
+    /// </summary>
+    public static IgExitCode SetStartupBoost(bool enable)
+    {
+        var langPath = "FrmSettings._StartupBoost";
+
+        return Run(() =>
+        {
+            var error = App.SetStartWithOs(enable);
+            if (error != null) throw error;
+
+            if (Program.ShowUi)
+            {
+                var note = enable ? Config.Language["FrmSettings._UnmanagedSettingReminder"] : "";
+                var description = enable ? Config.Language[$"{langPath}._Description"] : "";
+
+                _ = Config.ShowWarning(null,
+                    title: Config.Language[langPath],
+                    heading: Config.Language[$"{langPath}.{(enable ? "_Enabled" : "_Disabled")}"],
+                    description: description,
+                    note: note,
+                    icon: ShellStockIcon.SIID_INFO);
+            }
+        }, (error) =>
+        {
+            _ = Config.ShowError(null,
+                title: Config.Language[langPath],
+                heading: Config.Language[$"{langPath}._Error"],
+                description: error.Message,
+                details: error.ToString());
+        });
+    }
 }

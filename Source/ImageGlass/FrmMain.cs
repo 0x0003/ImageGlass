@@ -29,15 +29,12 @@ using ImageGlass.UI;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text;
 using WicNet;
-using Windows.ApplicationModel.DataTransfer;
 
 namespace ImageGlass;
 
 public partial class FrmMain : ThemedForm
 {
-    [SuppressMessage("IDisposableAnalyzers.Correctness", "IDISP002:Dispose member", Justification = "<Pending>")]
 #pragma warning disable CA1051 // Do not declare visible instance fields
     public readonly ModernToolbar ToolbarContext = new();
 #pragma warning restore CA1051 // Do not declare visible instance fields
@@ -83,23 +80,13 @@ public partial class FrmMain : ThemedForm
         base.OnDpiChanged();
         SuspendLayout();
 
-        // scale toolbar icons corresponding to DPI
-        var newIconHeight = this.ScaleToDpi(Config.ToolbarIconHeight);
 
-        // reload theme
-        Config.Theme.ToolbarActualIconHeight = newIconHeight;
-
-        // update toolbar theme
-        Toolbar.UpdateTheme(newIconHeight);
-        ToolbarContext.UpdateTheme(newIconHeight);
+        // update Frame Navigation toolbar state
         UpdateFrameNavToolbarButtonState();
 
         // update picmain scaling
         PicMain.NavButtonSize = this.ScaleToDpi(new SizeF(50f, 50f));
         PicMain.CheckerboardCellSize = this.ScaleToDpi(Const.VIEWER_GRID_SIZE);
-
-        // gallery
-        UpdateGallerySize();
 
         ResumeLayout(true);
     }
@@ -258,7 +245,7 @@ public partial class FrmMain : ThemedForm
 
         // build tooltip content
         using var sb = ZString.CreateStringBuilder();
-        sb.AppendLine(e.Item.FileName);
+        sb.AppendLine(e.Item.FilePath);
         sb.AppendLine($"{Config.Language[$"{langPath}._{nameof(IgMetadata.FileSize)}"]}: {e.Item.Details.FileSizeFormated}");
         sb.AppendLine($"{Config.Language[$"{langPath}._{nameof(IgMetadata.FileLastWriteTime)}"]}: {e.Item.Details.FileLastWriteTimeFormated}");
         var tooltipLinesCount = 4;
@@ -292,6 +279,21 @@ public partial class FrmMain : ThemedForm
             tooltipLinesCount++;
         }
 
+        // ExifDateTimeOriginal
+        if (e.Item.Details.ExifDateTimeOriginal != null)
+        {
+            sb.AppendLine($"{Config.Language[$"{langPath}._{nameof(IgMetadata.ExifDateTimeOriginal)}"]}: {BHelper.FormatDateTime(e.Item.Details.ExifDateTimeOriginal)}");
+            tooltipLinesCount++;
+        }
+
+        // ExifDateTime
+        if (e.Item.Details.ExifDateTime != null)
+        {
+            sb.AppendLine($"{Config.Language[$"{langPath}._{nameof(IgMetadata.ExifDateTime)}"]}: {BHelper.FormatDateTime(e.Item.Details.ExifDateTime)}");
+            tooltipLinesCount++;
+        }
+
+
         e.TooltipContent = sb.ToString();
         e.TooltipTitle = e.Item.Text + $" ({e.Item.Details.OriginalWidth:n0}×{e.Item.Details.OriginalHeight:n0})";
         e.TooltipSize = (Gallery.Tooltip as ModernTooltip)?.CalculateSize(e.TooltipContent);
@@ -306,7 +308,6 @@ public partial class FrmMain : ThemedForm
         // execute action
         _ = ExecuteUserActionAsync(tagModel.OnClick);
     }
-
 
 
     #region Image Loading functions
@@ -417,7 +418,6 @@ public partial class FrmMain : ThemedForm
             _ = LoadImageListAsync(paths, currentFile ?? filePath);
         }
     }
-
 
     /// <summary>
     /// Load the images list.
@@ -802,7 +802,6 @@ public partial class FrmMain : ThemedForm
             {
                 ColorProfileName = Config.ColorProfile,
                 ApplyColorProfileForAll = Config.ShouldUseColorProfileForAll,
-                ImageChannel = Local.ImageChannel,
                 AutoScaleDownLargeImage = true,
                 UseEmbeddedThumbnailRawFormats = Config.UseEmbeddedThumbnailRawFormats,
                 UseEmbeddedThumbnailOtherFormats = Config.UseEmbeddedThumbnailOtherFormats,
@@ -1120,7 +1119,8 @@ public partial class FrmMain : ThemedForm
                 autoAnimate: !e.IsViewingSeparateFrame,
                 frameIndex: e.FrameIndex,
                 resetZoom: e.ResetZoom,
-                enableFading: enableFadingTrainsition);
+                enableFading: enableFadingTrainsition,
+                channels: Local.ImageChannels);
 
             // update window fit
             if (e.ResetZoom && Config.EnableWindowFit)
@@ -1184,7 +1184,7 @@ public partial class FrmMain : ThemedForm
 
     private void ImageTransform_Changed(object? sender, EventArgs e)
     {
-        _uiReporter.Report(new ProgressReporterEventArgs(e, nameof(ImageTransform_Changed)));
+        _uiReporter.Report(new(e, nameof(ImageTransform_Changed)));
     }
 
 
@@ -1226,7 +1226,7 @@ public partial class FrmMain : ThemedForm
                     var thumbItem = Gallery.Items[Local.CurrentIndex];
 
                     if (thumbItem.ThumbnailImage is Image thumb
-                        && thumbItem.FileName.Equals(filePath, StringComparison.OrdinalIgnoreCase))
+                        && thumbItem.FilePath.Equals(filePath, StringComparison.OrdinalIgnoreCase))
                     {
                         wicSrc?.Dispose();
                         wicSrc = BHelper.ToWicBitmapSource(thumb);
@@ -1279,7 +1279,9 @@ public partial class FrmMain : ThemedForm
                     Image = wicSrc,
                     CanAnimate = false,
                     FrameCount = 1,
-                }, enableFading: Config.EnableImageTransition, isForPreview: true);
+                }, enableFading: Config.EnableImageTransition,
+                    isForPreview: true,
+                    channels: Local.ImageChannels);
 
                 _isShowingImagePreview = true;
             }
@@ -1784,6 +1786,7 @@ public partial class FrmMain : ThemedForm
         MnuSubMenu.Show(Cursor.Position);
     }
 
+
     private void MnuMain_Opening(object sender, System.ComponentModel.CancelEventArgs e)
     {
         try
@@ -1852,9 +1855,7 @@ public partial class FrmMain : ThemedForm
                 MnuContext.Items.Add(MenuUtils.Clone(MnuLoadingOrders));
             }
 
-            if (!Local.IsImageError
-                && !hasClipboardImage
-                && Local.Metadata?.FrameCount <= 1)
+            if (!Local.IsImageError && !PicMain.CanImageAnimate)
             {
                 MnuContext.Items.Add(MenuUtils.Clone(MnuViewChannels));
             }
@@ -1985,12 +1986,12 @@ public partial class FrmMain : ThemedForm
     #region Menu Navigation
     private void MnuViewNext_Click(object sender, EventArgs e)
     {
-        IG_ViewNextImage();
+        IG_ViewImage(1);
     }
 
     private void MnuViewPrevious_Click(object sender, EventArgs e)
     {
-        IG_ViewPreviousImage();
+        IG_ViewImage(-1);
     }
 
     private void MnuGoTo_Click(object sender, EventArgs e)
@@ -2155,11 +2156,109 @@ public partial class FrmMain : ThemedForm
     {
         IG_ToggleTopMost();
     }
+
+    private void MnuChangeBackgroundColor_Click(object sender, EventArgs e)
+    {
+        IG_SetBackgroundColor();
+    }
     #endregion // Menu Layout
 
 
     // Menu Image
     #region Menu Image
+
+    private void MnuViewChannelRed_Click(object sender, EventArgs e)
+    {
+        if (MnuViewChannelRed.Checked)
+        {
+            Local.ImageChannels ^= ColorChannels.R;
+        }
+        else
+        {
+            Local.ImageChannels |= ColorChannels.R;
+        }
+
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelGreen_Click(object sender, EventArgs e)
+    {
+        if (MnuViewChannelGreen.Checked)
+        {
+            Local.ImageChannels ^= ColorChannels.G;
+        }
+        else
+        {
+            Local.ImageChannels |= ColorChannels.G;
+        }
+
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelBlue_Click(object sender, EventArgs e)
+    {
+        if (MnuViewChannelBlue.Checked)
+        {
+            Local.ImageChannels ^= ColorChannels.B;
+        }
+        else
+        {
+            Local.ImageChannels |= ColorChannels.B;
+        }
+
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelAlpha_Click(object sender, EventArgs e)
+    {
+        if (MnuViewChannelAlpha.Checked)
+        {
+            Local.ImageChannels ^= ColorChannels.A;
+        }
+        else
+        {
+            Local.ImageChannels |= ColorChannels.A;
+        }
+
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelRGBA_Click(object sender, EventArgs e)
+    {
+        Local.ImageChannels = ColorChannels.RGBA;
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelRGB_Click(object sender, EventArgs e)
+    {
+        Local.ImageChannels = ColorChannels.RGB;
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelRedAlpha_Click(object sender, EventArgs e)
+    {
+        Local.ImageChannels = ColorChannels.R | ColorChannels.A;
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelGreenAlpha_Click(object sender, EventArgs e)
+    {
+        Local.ImageChannels = ColorChannels.G | ColorChannels.A;
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelBlueAlpha_Click(object sender, EventArgs e)
+    {
+        Local.ImageChannels = ColorChannels.B | ColorChannels.A;
+        IG_SetImageColorChannels();
+    }
+
+    private void MnuViewChannelAlphaOnly_Click(object sender, EventArgs e)
+    {
+        Local.ImageChannels = ColorChannels.A;
+        IG_SetImageColorChannels();
+    }
+
 
     private void MnuRotateLeft_Click(object sender, EventArgs e)
     {
@@ -2309,6 +2408,11 @@ public partial class FrmMain : ThemedForm
         IG_ToggleFrameNavTool();
     }
 
+    private void MnuLosslessCompression_Click(object sender, EventArgs e)
+    {
+        IG_LosslessCompression();
+    }
+
     private void MnuGetMoreTools_Click(object sender, EventArgs e)
     {
         _ = BHelper.OpenUrlAsync("https://imageglass.org/tools", "from_get_more_tools");
@@ -2371,4 +2475,5 @@ public partial class FrmMain : ThemedForm
     #endregion // Main Menu component
 
 
+    
 }

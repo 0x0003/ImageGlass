@@ -12,14 +12,23 @@ ImageGlass - A lightweight, versatile image viewer
 
 ImageGlass is a lightweight software designed for seamless viewing of images in a clean and intuitive interface. With support for over 80 common image formats including `WEBP`, `GIF`, `SVG`, `PNG`, `JXL`, `HEIC`,... ImageGlass also offers advanced features that cater to the needs of both regular users and designers, making it the excellent tool to enhance workflow efficiency.
 
+
+## ⭐ Visit Us at [The Merge Conference](https://merge.berlin) on June 14, 2024
+<img src="https://github.com/d2phap/ImageGlass/assets/3154213/4ce5ccc7-0964-4a8a-a6ab-71e49bd2f5bd" height="200" />
+
+ImageGlass is proud to be one of the open-source projects that will be exhibiting at **[The Merge Conference](https://merge.berlin)** in Berlin, Germany. If you're attending, be sure to visit our booth and explore other amazing open-source projects!
+- 📅 **Date & Time: June 14, 2024 10:00 AM - 2:00 PM**
+- 🌐 https://merge.berlin
+
+
 ## 📥 Download
-<a href="https://www.microsoft.com/store/productId/9N33VZK3C7TH?cid=GitHubRelease&referrer=appbadge&source=GithubD2phap">
-  <img height="69" src="https://user-images.githubusercontent.com/3154213/197670614-b9ecc804-ebb2-44cc-88c3-5dd321564a51.svg" /></a>
+<a href="https://apps.microsoft.com/detail/9N33VZK3C7TH?launch=true&cid=GitHubRelease&mode=full">
+  <img  height="58" src="https://github.com/d2phap/ImageGlass/assets/3154213/08a071bb-a6ae-420c-b53b-2317004570d4" />
+</a>
 
 <br/>
 <a href="https://imageglass.org/download">
   <img src="https://img.shields.io/github/downloads/d2phap/imageglass/total?color=%232A7C91&label=total%20downloads&style=for-the-badge" /></a>
-  
 <a href="https://imageglass.org/download">
   <img src="https://img.shields.io/github/downloads/d2phap/imageglass/latest/total?color=%232A7C91&label=latest%20version&style=for-the-badge" /></a>
 
@@ -56,9 +65,9 @@ v9 Official              :active, des2, 2023-12,2025-01
 
 
 ## 🪁 System Requirements
-- Windows 10/11 64-bit, version 2004 or later
+- Windows 10/11 64-bit, version 1809 (build 17763) or later
 - [.NET Desktop Runtime 8 (64-bit)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-- [WebView2 Runtime 64-bit](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section)
+- [WebView2 Runtime 64-bit v119.0.2151 or later](https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section)
 
 
 ## 👨‍💻 Development

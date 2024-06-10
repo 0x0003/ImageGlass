@@ -60,9 +60,9 @@ public static class PhotoCodec
         meta.FolderName = Path.GetFileName(meta.FolderPath);
 
         meta.FileSize = fi.Length;
-        meta.FileCreationTime = fi.CreationTimeUtc;
-        meta.FileLastWriteTime = fi.LastWriteTimeUtc;
-        meta.FileLastAccessTime = fi.LastAccessTimeUtc;
+        meta.FileCreationTime = fi.CreationTime;
+        meta.FileLastWriteTime = fi.LastWriteTime;
+        meta.FileLastAccessTime = fi.LastAccessTime;
 
         try
         {
@@ -97,6 +97,34 @@ public static class PhotoCodec
 
                 meta.FrameIndex = (uint)frameIndex;
                 using var imgM = imgC[frameIndex];
+
+
+                // image size
+                meta.OriginalWidth = imgM.BaseWidth;
+                meta.OriginalHeight = imgM.BaseHeight;
+
+                if (options?.AutoScaleDownLargeImage == true)
+                {
+                    var newSize = GetMaxImageRenderSize(imgM.BaseWidth, imgM.BaseHeight);
+
+                    meta.RenderedWidth = newSize.Width;
+                    meta.RenderedHeight = newSize.Height;
+                }
+                else
+                {
+                    meta.RenderedWidth = imgM.Width;
+                    meta.RenderedHeight = imgM.Height;
+                }
+
+
+                // image color
+                meta.HasAlpha = imgC.Any(i => i.HasAlpha);
+                meta.ColorSpace = imgM.ColorSpace.ToString();
+
+                var isAnimatedExtension = ext == ".GIF" || ext == ".GIFV" || ext == ".WEBP";
+                meta.CanAnimate = imgC.Count > 1
+                    && (isAnimatedExtension || imgC.Any(i => i.GifDisposeMethod != GifDisposeMethod.Undefined));
+
 
                 // EXIF profile
                 if (imgM.GetExifProfile() is IExifProfile exifProfile)
@@ -134,35 +162,58 @@ public static class PhotoCodec
                         ? null
                         : rational.Numerator / rational.Denominator;
                 }
+                else
+                {
+                    try
+                    {
+                        using var fs = File.OpenRead(filePath);
+                        using var img = Image.FromStream(fs, false, false);
+                        var enc = new ASCIIEncoding();
+
+                        var EXIF_DateTimeOriginal = 0x9003; //36867
+                        var EXIF_DateTime = 0x0132;
+
+                        try
+                        {
+                            // get EXIF_DateTimeOriginal
+                            var pi = img.GetPropertyItem(EXIF_DateTimeOriginal);
+                            var dateTimeText = enc.GetString(pi.Value, 0, pi.Len - 1);
+
+                            if (DateTime.TryParseExact(dateTimeText, "yyyy:MM:dd HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out var exifDateTimeOriginal))
+                            {
+                                meta.ExifDateTimeOriginal = exifDateTimeOriginal;
+                            }
+                        }
+                        catch { }
+
+
+                        try
+                        {
+                            // get EXIF_DateTime
+                            var pi = img.GetPropertyItem(EXIF_DateTime);
+                            var dateTimeText = enc.GetString(pi.Value, 0, pi.Len - 1);
+
+                            if (DateTime.TryParseExact(dateTimeText, "yyyy:MM:dd HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out var exifDateTime))
+                            {
+                                meta.ExifDateTime = exifDateTime;
+                            }
+                        }
+                        catch { }
+                    }
+                    catch { }
+                }
+
 
                 // Color profile
                 if (imgM.GetColorProfile() is IColorProfile colorProfile)
                 {
                     meta.ColorProfile = colorProfile.ColorSpace.ToString();
+
+                    if (!string.IsNullOrWhiteSpace(colorProfile.Description))
+                    {
+                        meta.ColorProfile = $"{colorProfile.Description} ({meta.ColorProfile})";
+                    }
                 }
-
-                if (options?.AutoScaleDownLargeImage == true)
-                {
-                    var newSize = GetMaxImageRenderSize(imgM.BaseWidth, imgM.BaseHeight);
-
-                    meta.RenderedWidth = newSize.Width;
-                    meta.RenderedHeight = newSize.Height;
-                }
-                else
-                {
-                    meta.RenderedWidth = imgM.Width;
-                    meta.RenderedHeight = imgM.Height;
-                }
-
-                meta.OriginalWidth = imgM.BaseWidth;
-                meta.OriginalHeight = imgM.BaseHeight;
-
-                meta.HasAlpha = imgC.Any(i => i.HasAlpha);
-                meta.ColorSpace = imgM.ColorSpace.ToString();
-
-                var isAnimatedExtension = ext == ".GIF" || ext == ".GIFV" || ext == ".WEBP";
-                meta.CanAnimate = imgC.Count > 1
-                    && (isAnimatedExtension || imgC.Any(i => i.GifDisposeMethod != GifDisposeMethod.Undefined));
             }
         }
         catch { }
@@ -204,7 +255,7 @@ public static class PhotoCodec
     /// <summary>
     /// Gets thumbnail from image.
     /// </summary>
-    public static Bitmap? GetThumbnail(string filePath, int width, int height)
+    public static async Task<Bitmap?> GetThumbnailAsync(string filePath, int width, int height)
     {
         if (string.IsNullOrEmpty(filePath) || width == 0 || height == 0) return null;
 
@@ -214,7 +265,6 @@ public static class PhotoCodec
             Width = width,
             Height = height,
             FirstFrameOnly = true,
-            ImageChannel = ColorChannel.All,
             UseEmbeddedThumbnailRawFormats = true,
             UseEmbeddedThumbnailOtherFormats = true,
             ApplyColorProfileForAll = false,
@@ -223,7 +273,7 @@ public static class PhotoCodec
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
 
 
-        var imgData = BHelper.RunSync(() => ReadMagickImageAsync(filePath, ext, settings, options, null, new()));
+        var imgData = await ReadMagickImageAsync(filePath, ext, settings, options, null, new());
 
         if (imgData?.SingleFrameImage != null)
         {
@@ -231,6 +281,15 @@ public static class PhotoCodec
         }
 
         return null;
+    }
+
+
+    /// <summary>
+    /// Gets thumbnail from image.
+    /// </summary>
+    public static Bitmap? GetThumbnail(string filePath, int width, int height)
+    {
+        return BHelper.RunSync(() => GetThumbnailAsync(filePath, width, height));
     }
 
 
@@ -390,7 +449,7 @@ public static class PhotoCodec
         {
             if (!CheckSupportFormatForSaving(destFilePath))
             {
-                throw new FileFormatException("Unsupported image format.");
+                throw new FileFormatException("IGE_001: Unsupported image format.");
             }
 
             var settings = ParseSettings(readOptions, true, srcFileName);
@@ -679,6 +738,42 @@ public static class PhotoCodec
         ResourceLimits.LimitMemory(new Percentage(75));
     }
 
+
+    /// <summary>
+    /// Checks if the supplied file name is supported for lossless compression using Magick.NET.
+    /// </summary>
+    public static bool IsLosslessCompressSupported(string? filePath)
+    {
+        var opt = new ImageOptimizer()
+        {
+            OptimalCompression = true,
+        };
+
+        return opt.IsSupported(filePath);
+    }
+
+    /// <summary>
+    /// Performs lossless compression on the specified file using Magick.NET.
+    /// If the new file size is not smaller, the file won't be overwritten.
+    /// </summary>
+    /// <returns>True when the image could be compressed otherwise false.</returns>
+    /// <exception cref="NotSupportedException"></exception>
+    public static bool LosslessCompress(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath)) return false;
+
+        var fi = new FileInfo(filePath);
+        var opt = new ImageOptimizer()
+        {
+            OptimalCompression = true,
+        };
+
+        // check if the format is supported
+        if (!opt.IsSupported(fi)) throw new NotSupportedException("IGE_002: Unsupported image format.");
+
+        return opt.LosslessCompress(fi);
+    }
+
     #endregion // Public functions
 
 
@@ -770,7 +865,8 @@ public static class PhotoCodec
                     }
                     else
                     {
-                        result.Image = BHelper.ToWicBitmapSource(webp.Load(filePath));
+                        using var webpBmp = webp.Load(filePath);
+                        result.Image = BHelper.ToWicBitmapSource(webpBmp);
                     }
                 }
                 catch
@@ -928,9 +1024,6 @@ public static class PhotoCodec
             imgM = processResult.ThumbM;
         }
 
-
-        // apply color channel
-        imgM = ApplyColorChannel(imgM, options);
 
         // apply final changes
         TransformImage(imgM, transform);
@@ -1140,21 +1233,6 @@ public static class PhotoCodec
 
 
     /// <summary>
-    /// Applies color channel setting
-    /// </summary>
-    private static MagickImage ApplyColorChannel(MagickImage imgM, CodecReadOptions options)
-    {
-        // apply color channel
-        if (options.ImageChannel != ColorChannel.All)
-        {
-            return FilterColorChannel(imgM, options.ImageChannel);
-        }
-
-        return imgM;
-    }
-
-
-    /// <summary>
     /// Applies the size settings
     /// </summary>
     private static void ApplySizeSettings(IMagickImage imgM, CodecReadOptions options)
@@ -1166,27 +1244,6 @@ public static class PhotoCodec
                 imgM.Thumbnail(options.Width, options.Height);
             }
         }
-    }
-
-
-    /// <summary>
-    /// Filter color channel of Magick image
-    /// </summary>
-    private static MagickImage FilterColorChannel(MagickImage imgM, ColorChannel channel)
-    {
-        if (channel == ColorChannel.All) return imgM;
-
-
-        var magickChannel = (Channels)channel;
-        var channelImgM = (MagickImage)imgM.Separate(magickChannel).First();
-
-        if (imgM.HasAlpha && magickChannel != Channels.Alpha)
-        {
-            using var alpha = imgM.Separate(Channels.Alpha).First();
-            channelImgM.Composite(alpha, CompositeOperator.CopyAlpha);
-        }
-
-        return channelImgM;
     }
 
 

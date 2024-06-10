@@ -28,9 +28,9 @@ public class IgMetadata
     public string FolderPath { get; set; } = string.Empty;
     public string FolderName { get; set; } = string.Empty;
 
-    public DateTime FileCreationTime { get; set; }
-    public DateTime FileLastAccessTime { get; set; }
-    public DateTime FileLastWriteTime { get; set; }
+    public DateTime FileCreationTime { get; set; } // local time
+    public DateTime FileLastAccessTime { get; set; } // local time
+    public DateTime FileLastWriteTime { get; set; } // local time
     public string FileCreationTimeFormated => BHelper.FormatDateTime(FileCreationTime);
     public string FileLastAccessTimeFormated => BHelper.FormatDateTime(FileLastAccessTime);
     public string FileLastWriteTimeFormated => BHelper.FormatDateTime(FileLastWriteTime);
@@ -66,8 +66,8 @@ public class IgMetadata
 
     // EXIF metadata
     public int ExifRatingPercent { get; set; } = 0;
-    public DateTime? ExifDateTimeOriginal { get; set; } = null;
-    public DateTime? ExifDateTime { get; set; } = null;
+    public DateTime? ExifDateTimeOriginal { get; set; } = null; // local time
+    public DateTime? ExifDateTime { get; set; } = null; // local time
     public string? ExifImageDescription { get; set; } = null;
     public string? ExifModel { get; set; } = null;
     public string? ExifArtist { get; set; } = null;

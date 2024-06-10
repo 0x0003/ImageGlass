@@ -28,7 +28,6 @@ using ImageGlass.Viewer;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
 using WicNet;
 
 namespace ImageGlass;
@@ -163,33 +162,17 @@ public partial class FrmMain
 
 
     /// <summary>
-    /// Views previous image
+    /// View image
     /// </summary>
-    public void IG_ViewPreviousImage()
+    public void IG_ViewImage(int step)
     {
         if (Config.EnableImageAsyncLoading)
         {
-            _ = ViewNextCancellableAsync(-1);
+            _ = ViewNextCancellableAsync(step);
         }
         else
         {
-            BHelper.RunSync(() => ViewNextCancellableAsync(-1));
-        }
-    }
-
-
-    /// <summary>
-    /// View next image
-    /// </summary>
-    public void IG_ViewNextImage()
-    {
-        if (Config.EnableImageAsyncLoading)
-        {
-            _ = ViewNextCancellableAsync(1);
-        }
-        else
-        {
-            BHelper.RunSync(() => ViewNextCancellableAsync(1));
+            BHelper.RunSync(() => ViewNextCancellableAsync(step));
         }
     }
 
@@ -813,6 +796,41 @@ public partial class FrmMain
 
 
     /// <summary>
+    /// Sets background color,
+    /// opens <see cref="ModernColorDialog"/> if the <paramref name="hexColor"/> is <c>null</c>.
+    /// </summary>
+    public void IG_SetBackgroundColor(string? hexColor = null)
+    {
+        var color = Color.Empty;
+
+        // open Color picker to select color if hexColor not defined
+        if (string.IsNullOrEmpty(hexColor))
+        {
+            using var cd = new ModernColorDialog()
+            {
+                StartPosition = FormStartPosition.CenterParent,
+                ColorValue = Config.BackgroundColor,
+            };
+
+            if (cd.ShowDialog() == DialogResult.OK)
+            {
+                color = cd.ColorValue;
+            }
+        }
+        else
+        {
+            color = BHelper.ColorFromHex(hexColor);
+        }
+
+
+        if (!color.IsEmpty)
+        {
+            PicMain.BackColor = Config.BackgroundColor = color;
+        }
+    }
+
+
+    /// <summary>
     /// Opens project site to report issue
     /// </summary>
     public static void IG_ReportIssue()
@@ -1175,13 +1193,7 @@ public partial class FrmMain
     {
         if (PicMain.Source == ImageSource.Null) return;
 
-        var bitmap = Local.ClipboardImage;
-        if (bitmap == null)
-        {
-            var img = await Local.Images.GetAsync(Local.CurrentIndex);
-            bitmap = img?.ImgData?.Image;
-        }
-
+        var bitmap = PicMain.GetRenderedBitmap();
         if (bitmap == null) return;
 
         var langPath = $"{Name}.{nameof(MnuCopyImageData)}";
@@ -1591,6 +1603,8 @@ public partial class FrmMain
 
             // reset transformations
             if (saveTransform) Local.ImageTransform.Clear();
+
+            await Task.Delay(200); // min time to pause file watcher
         }
         catch (Exception ex)
         {
@@ -1952,7 +1966,7 @@ public partial class FrmMain
             if (!Config.EnableRealTimeFileUpdate)
             {
                 Local.Images.SetFileName(Local.CurrentIndex, newFilePath);
-                Gallery.Items[Local.CurrentIndex].FileName = newFilePath;
+                Gallery.Items[Local.CurrentIndex].FilePath = newFilePath;
                 Gallery.Items[Local.CurrentIndex].Text = newName;
                 LoadImageInfo(ImageInfoUpdateTypes.Name | ImageInfoUpdateTypes.Path);
             }
@@ -2553,7 +2567,7 @@ public partial class FrmMain
             // restore window state, size, position
             if (changeWindowState)
             {
-                Config.FrmMainState = WindowSettings.ToWindowState(_windowState);
+                Config.FrmMainState = _windowState;
 
                 // windows state
                 if (_windowState == FormWindowState.Normal)
@@ -2567,8 +2581,7 @@ public partial class FrmMain
                 else if (_windowState == FormWindowState.Maximized)
                 {
                     // Windows Bound (Position + Size)
-                    var wp = WindowSettings.GetFrmMainPlacementFromConfig();
-                    WindowSettings.SetPlacementToWindow(this, wp);
+                    WindowSettings.LoadFrmMainPlacementFromConfig(this);
 
                     // to make sure the SizeChanged event is not triggered
                     // before we set the window placement
@@ -2812,8 +2825,8 @@ public partial class FrmMain
         else
         {
             PicMain.ShowMessage(
-                text: Config.Language["_._NotSupported._Transformation"],
-                heading: Config.Language["_._NotSupported"],
+                text: Config.Language["_._InvalidAction._Transformation"],
+                heading: Config.Language["_._InvalidAction"],
                 durationMs: Config.InAppMessageDuration);
         }
     }
@@ -2842,8 +2855,8 @@ public partial class FrmMain
         else
         {
             PicMain.ShowMessage(
-                text: Config.Language["_._NotSupported._Transformation"],
-                heading: Config.Language["_._NotSupported"],
+                text: Config.Language["_._InvalidAction._Transformation"],
+                heading: Config.Language["_._InvalidAction"],
                 durationMs: Config.InAppMessageDuration);
         }
     }
@@ -3028,14 +3041,14 @@ public partial class FrmMain
         // update toolbar items state
         UpdateToolbarItemsState();
 
-        // toggle page nav toolbar
-        TogglePageNavToolbar(visible.Value);
+        // toggle frame nav toolbar
+        _ = ToggleFrameNavToolbarAsync(visible.Value);
 
         return visible.Value;
     }
 
 
-    private void TogglePageNavToolbar(bool visible)
+    private async Task ToggleFrameNavToolbarAsync(bool visible)
     {
         ToolbarContext.SuspendLayout();
         ToolbarContext.ClearItems();
@@ -3043,68 +3056,70 @@ public partial class FrmMain
 
         if (visible)
         {
-            // display frame info
-            ToolbarContext.AddItem(new()
-            {
-                Id = Const.FRAME_NAV_TOOLBAR_FRAME_INFO,
-                DisplayStyle = ToolStripItemDisplayStyle.Text,
-            });
+            ToolbarContext.AddItems([
+                // display frame info
+                new()
+                {
+                    Id = Const.FRAME_NAV_TOOLBAR_FRAME_INFO,
+                    DisplayStyle = ToolStripItemDisplayStyle.Text,
+                },
 
-            // view first frame
-            ToolbarContext.AddItem(new()
-            {
-                Id = "Btn_ViewLastFrame",
-                Image = nameof(Config.Theme.ToolbarIcons.ViewFirstImage),
-                OnClick = new(nameof(MnuViewFirstFrame)),
-            });
+                // view first frame
+                new()
+                {
+                    Id = "Btn_ViewLastFrame",
+                    Image = nameof(Config.Theme.ToolbarIcons.ViewFirstImage),
+                    OnClick = new(nameof(MnuViewFirstFrame)),
+                },
 
-            // view previous frame
-            ToolbarContext.AddItem(new()
-            {
-                Id = "Btn_ViewPreviousFrame",
-                Image = nameof(Config.Theme.ToolbarIcons.ViewPreviousImage),
-                OnClick = new(nameof(MnuViewPreviousFrame)),
-            });
-
-
-            // play/pause frame animation
-            ToolbarContext.AddItem(new()
-            {
-                Id = Const.FRAME_NAV_TOOLBAR_TOGGLE_ANIMATION,
-                Image = nameof(Config.Theme.ToolbarIcons.Play),
-                OnClick = new(nameof(MnuToggleImageAnimation)),
-            });
-
-            // view next frame
-            ToolbarContext.AddItem(new()
-            {
-                Id = "Btn_ViewNextFrame",
-                Image = nameof(Config.Theme.ToolbarIcons.ViewNextImage),
-                OnClick = new(nameof(MnuViewNextFrame)),
-            });
-
-            // view last frame
-            ToolbarContext.AddItem(new()
-            {
-                Id = "Btn_ViewLastFrame",
-                Image = nameof(Config.Theme.ToolbarIcons.ViewLastImage),
-                OnClick = new(nameof(MnuViewLastFrame)),
-            });
+                // view previous frame
+                new()
+                {
+                    Id = "Btn_ViewPreviousFrame",
+                    Image = nameof(Config.Theme.ToolbarIcons.ViewPreviousImage),
+                    OnClick = new(nameof(MnuViewPreviousFrame)),
+                },
 
 
-            // export all frames
-            ToolbarContext.AddItem(new()
-            {
-                Id = "Btn_ExportAllFrames",
-                Image = nameof(Config.Theme.ToolbarIcons.Export),
-                OnClick = new(nameof(MnuExportFrames)),
-            });
+                // play/pause frame animation
+                new()
+                {
+                    Id = Const.FRAME_NAV_TOOLBAR_TOGGLE_ANIMATION,
+                    Image = nameof(Config.Theme.ToolbarIcons.Play),
+                    OnClick = new(nameof(MnuToggleImageAnimation)),
+                },
+
+                // view next frame
+                new()
+                {
+                    Id = "Btn_ViewNextFrame",
+                    Image = nameof(Config.Theme.ToolbarIcons.ViewNextImage),
+                    OnClick = new(nameof(MnuViewNextFrame)),
+                },
+
+                // view last frame
+                new()
+                {
+                    Id = "Btn_ViewLastFrame",
+                    Image = nameof(Config.Theme.ToolbarIcons.ViewLastImage),
+                    OnClick = new(nameof(MnuViewLastFrame)),
+                },
+
+
+                // export all frames
+                new()
+                {
+                    Id = "Btn_ExportAllFrames",
+                    Image = nameof(Config.Theme.ToolbarIcons.Export),
+                    OnClick = new(nameof(MnuExportFrames)),
+                }
+            ]);
 
             LoadToolbarItemsText(ToolbarContext);
         }
 
         ToolbarContext.Visible = visible;
-        ToolbarContext.UpdateTheme();
+        await ToolbarContext.UpdateThemeAsync();
         ToolbarContext.ResumeLayout(true);
 
 
@@ -3162,6 +3177,86 @@ public partial class FrmMain
 
 
     /// <summary>
+    /// Runs lossless compression tool.
+    /// </summary>
+    public void IG_LosslessCompression()
+    {
+        if (Local.IsBusy || Local.Images.Length == 0) return;
+
+        var filePath = Local.Images.GetFilePath(Local.CurrentIndex);
+        if (string.IsNullOrWhiteSpace(filePath)) return;
+
+        var langPath = $"{Name}.{nameof(MnuLosslessCompression)}";
+
+        // image format not supported
+        if (!PhotoCodec.IsLosslessCompressSupported(filePath))
+        {
+            _ = Config.ShowInfo(this,
+                description: filePath,
+                title: Config.Language[langPath],
+                heading: Config.Language["_._NotSupported"],
+                thumbnail: Gallery.Items[Local.CurrentIndex].ThumbnailImage);
+
+            return;
+        }
+
+
+        // always show confirmation dialog
+        var result = Config.ShowInfo(this,
+            description: $"{filePath}\r\n{Gallery.Items[Local.CurrentIndex].Details.FileSizeFormated}",
+            title: Config.Language[langPath],
+            heading: Config.Language[$"{langPath}._Confirm"],
+            note: Config.Language[$"{langPath}._Description"],
+            thumbnail: Gallery.Items[Local.CurrentIndex].ThumbnailImage,
+            buttons: PopupButton.Yes_No);
+
+        if (result.ExitResult != PopupExitResult.OK) return;
+
+
+        // perform lossless compression
+        _ = LosslessCompressImageAsync(filePath);
+    }
+
+    private async Task LosslessCompressImageAsync(string filePath)
+    {
+        PicMain.ShowMessage(Config.Language[$"{Name}.{nameof(MnuLosslessCompression)}._Compressing"], null);
+
+        var oldIndex = Local.CurrentIndex;
+        var oldFileSize = new FileInfo(filePath).Length;
+        Local.IsBusy = true;
+
+        // perform lossless compression
+        var result = await Config.RunIgcmd($"{IgCommands.LOSSLESS_COMPRESS} \"{filePath}\"");
+
+        var currentImagePath = Local.Images.GetFilePath(Local.CurrentIndex);
+        var isViewingSameFile = currentImagePath.Equals(filePath, StringComparison.OrdinalIgnoreCase);
+
+        // reload the image if
+        if (result == IgExitCode.Done)
+        {
+            if (isViewingSameFile)
+            {
+                var newFileSize = new FileInfo(filePath).Length;
+                var ratio = Math.Round((1 - (newFileSize * 1f / oldFileSize)) * 100f, 2);
+                var msg = ZString.Format(Config.Language[$"{Name}.{nameof(MnuLosslessCompression)}._Done"],
+                    $"{BHelper.FormatSize(newFileSize)}",
+                    $"{BHelper.FormatSize(oldFileSize - newFileSize)} ({ratio}%)");
+
+                PicMain.ShowMessage(msg, null, Config.InAppMessageDuration);
+
+                await Task.Delay(200); // min time to pause file watcher
+            }
+        }
+        else
+        {
+            PicMain.ClearMessage();
+        }
+
+        Local.IsBusy = false;
+    }
+
+
+    /// <summary>
     /// Sets the real-time file update engine.
     /// </summary>
     public bool IG_SetRealTimeFileUpdate(bool? enable = null)
@@ -3190,6 +3285,54 @@ public partial class FrmMain
         }
 
         return Config.EnableRealTimeFileUpdate;
+    }
+
+
+    /// <summary>
+    /// Set image color channels.
+    /// </summary>
+    /// <param name="colors">
+    /// Color channels as string. E.g. <c>R, A</c>, <c>R, G, B</c>
+    /// <list type="bullet">
+    ///   <item><c>A</c>: Show alpha channel only</item>
+    ///   <item><c>R, A</c>: Show red and alpha channel</item>
+    ///   <item><c>R, G, B</c>: Show red, green, blue channel (without alpha)</item>
+    /// </list>
+    /// </param>
+    public void IG_SetImageColorChannels(string? colors = null)
+    {
+        var channels = Local.ImageChannels;
+
+        if (!string.IsNullOrWhiteSpace(colors))
+        {
+            channels = BHelper.ParseEnum<ColorChannels>(colors);
+        }
+
+        SetImageColorChannels(channels);
+    }
+    private void SetImageColorChannels(ColorChannels channels)
+    {
+        if (PicMain.Source == ImageSource.Null || Local.IsBusy) return;
+
+
+        // apply color channels filter
+        if (PicMain.FilterColorChannels(channels, true))
+        {
+            Local.ImageChannels = channels;
+
+            // update check state of menu Channels
+            MnuViewChannelRed.Checked = channels.HasFlag(ColorChannels.R);
+            MnuViewChannelGreen.Checked = channels.HasFlag(ColorChannels.G);
+            MnuViewChannelBlue.Checked = channels.HasFlag(ColorChannels.B);
+            MnuViewChannelAlpha.Checked = channels.HasFlag(ColorChannels.A);
+        }
+        else
+        {
+            PicMain.ShowMessage(
+                text: "",
+                heading: Config.Language["_._InvalidAction"],
+                durationMs: Config.InAppMessageDuration);
+        }
     }
 
 }

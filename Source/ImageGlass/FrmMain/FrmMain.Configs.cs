@@ -121,11 +121,13 @@ public partial class FrmMain
         { nameof(MnuToggleToolbar),         [new(Keys.T)] },
         { nameof(MnuToggleGallery),         [new(Keys.G)] },
         { nameof(MnuToggleCheckerboard),    [new(Keys.B)] },
+        { nameof(MnuChangeBackgroundColor), [new(Keys.M)] },
 
         // MnuTools
         { nameof(MnuColorPicker),           [new(Keys.K)] },
         { nameof(MnuCropTool),              [new(Keys.C)] },
-        { nameof(MnuFrameNav),               [new(Keys.P)] },
+        { nameof(MnuFrameNav),              [new(Keys.P)] },
+        { nameof(MnuLosslessCompression),   [new(Keys.Alt | Keys.C)] },
         { Const.IGTOOL_EXIFTOOL,            [new(Keys.X)] },
 
         // MnuHelp
@@ -179,10 +181,29 @@ public partial class FrmMain
         // set up layout
         LoadAppLayout();
 
+
+        // toggle toolbar
+        IG_ToggleToolbar(Config.ShowToolbar);
+
+        // toggle gallery
+        IG_ToggleGallery(Config.ShowGallery);
+
+
         ResumeLayout(false);
+
 
         FormClosing += FrmMainConfig_FormClosing;
         SizeChanged += FrmMainConfig_SizeChanged;
+
+
+        // run Startup Boost mode
+        if (Program.IsStartupBoostMode)
+        {
+            Config.FrmMainPositionX = -9999;
+            Config.FrmMainPositionY = -9999;
+            Config.FrmMainState = FormWindowState.Normal;
+            ShowInTaskbar = false;
+        }
     }
 
 
@@ -214,19 +235,11 @@ public partial class FrmMain
 
     private void FrmMain_Load(object sender, EventArgs e)
     {
-        Local.FrmMainUpdateRequested += Local_FrmMainUpdateRequested;
+        Local.FrmMainUpdateRequested += Local_FrmMainUpdateRequestedAsync;
 
 
         // IsWindowAlwaysOnTop
         IG_ToggleTopMost(Config.EnableWindowTopMost, showInAppMessage: false);
-
-
-        // toggle toolbar
-        IG_ToggleToolbar(Config.ShowToolbar);
-
-
-        // toggle gallery
-        IG_ToggleGallery(Config.ShowGallery);
 
 
         // Enable form movable: must be before IG_ToggleFullScreen()
@@ -248,14 +261,14 @@ public partial class FrmMain
             // load window placement from settings here to save the initial
             // position of window so that when user exists the fullscreen mode,
             // it can be restore correctly
-            WindowSettings.SetPlacementToWindow(this, WindowSettings.GetFrmMainPlacementFromConfig());
+            WindowSettings.LoadFrmMainPlacementFromConfig(this, autoCorrectBounds: !Program.IsStartupBoostMode);
 
             IG_ToggleFullScreen(true);
         }
         else
         {
             // load window placement from settings
-            WindowSettings.SetPlacementToWindow(this, WindowSettings.GetFrmMainPlacementFromConfig());
+            WindowSettings.LoadFrmMainPlacementFromConfig(this, autoCorrectBounds: !Program.IsStartupBoostMode);
 
             // toggle frameless window
             IG_ToggleFrameless(Config.EnableFrameless, false);
@@ -265,14 +278,26 @@ public partial class FrmMain
         }
 
 
-        // start slideshow
-        if (Config.EnableSlideshow)
+        // run Startup Boost mode
+        if (Program.IsStartupBoostMode)
         {
-            IG_ToggleSlideshow();
+            Task.Run(async () =>
+            {
+                await Task.Delay(3000);
+                IG_Exit();
+            });
         }
+        else
+        {
+            // start slideshow
+            if (Config.EnableSlideshow)
+            {
+                IG_ToggleSlideshow();
+            }
 
-        // load first image
-        LoadImagesFromCmdArgs(Environment.GetCommandLineArgs());
+            // load first image
+            LoadImagesFromCmdArgs(Environment.GetCommandLineArgs());
+        }
 
 
         // load other low priority data after 500ms
@@ -320,9 +345,12 @@ public partial class FrmMain
 
     private void FrmMainConfig_FormClosing(object? sender, FormClosingEventArgs e)
     {
-        _ = SaveConfigsOnClosing();
+        // immediately exit
+        if (Program.IsStartupBoostMode) return;
 
-        ToolbarContext.Dispose();
+
+        // save settings
+        _ = SaveConfigsOnClosing();
     }
 
 
@@ -331,8 +359,7 @@ public partial class FrmMain
         // save FrmMain placement
         if (!Config.EnableFullScreen)
         {
-            var wp = WindowSettings.GetPlacementFromWindow(this);
-            WindowSettings.SetFrmMainPlacementConfig(wp);
+            WindowSettings.SaveFrmMainPlacementToConfig(this);
         }
 
 
@@ -381,7 +408,7 @@ public partial class FrmMain
     /// <summary>
     /// Processes internal update requests
     /// </summary>
-    private void Local_FrmMainUpdateRequested(UpdateRequestEventArgs e)
+    private async Task Local_FrmMainUpdateRequestedAsync(UpdateRequestEventArgs e)
     {
         if (e.Requests.HasFlag(UpdateRequests.ReloadImage))
         {
@@ -412,8 +439,8 @@ public partial class FrmMain
         if (e.Requests.HasFlag(UpdateRequests.ToolbarIcons)
             || e.Requests.HasFlag(UpdateRequests.ToolbarButtons))
         {
-            Toolbar.UpdateTheme(this.ScaleToDpi(Config.ToolbarIconHeight));
-            ToolbarContext.UpdateTheme(this.ScaleToDpi(Config.ToolbarIconHeight));
+            await Toolbar.UpdateThemeAsync(Config.ToolbarIconHeight);
+            await ToolbarContext.UpdateThemeAsync(Config.ToolbarIconHeight);
         }
 
         if (e.Requests.HasFlag(UpdateRequests.ToolbarIcons)
@@ -707,7 +734,6 @@ public partial class FrmMain
         MnuImageProperties.Text = lang[$"{Name}.{nameof(MnuImageProperties)}"];
 
         MnuViewChannels.Text = lang[$"{Name}.{nameof(MnuViewChannels)}"];
-        LoadMnuViewChannelsSubItems(); // update Channels menu items
 
         MnuLoadingOrders.Text = lang[$"{Name}.{nameof(MnuLoadingOrders)}"];
         LoadMnuLoadingOrdersSubItems(); // update Loading order items
@@ -743,6 +769,7 @@ public partial class FrmMain
         MnuToggleGallery.Text = lang[$"{Name}.{nameof(MnuToggleGallery)}"];
         MnuToggleCheckerboard.Text = lang[$"{Name}.{nameof(MnuToggleCheckerboard)}"];
         MnuToggleTopMost.Text = lang[$"{Name}.{nameof(MnuToggleTopMost)}"];
+        MnuChangeBackgroundColor.Text = lang[$"{Name}.{nameof(MnuChangeBackgroundColor)}"];
         #endregion
 
 
@@ -753,6 +780,7 @@ public partial class FrmMain
         MnuColorPicker.Text = lang[$"{Name}.{nameof(MnuColorPicker)}"];
         MnuFrameNav.Text = lang[$"{Name}.{nameof(MnuFrameNav)}"];
         MnuCropTool.Text = lang[$"{Name}.{nameof(MnuCropTool)}"];
+        MnuLosslessCompression.Text = lang[$"{Name}.{nameof(MnuLosslessCompression)}"];
         MnuGetMoreTools.Text = lang[$"{Name}.{nameof(MnuGetMoreTools)}"];
 
         foreach (var item in MnuTools.DropDownItems)
@@ -848,99 +876,37 @@ public partial class FrmMain
     /// </summary>
     public void LoadToolbarItemsText(ModernToolbar modernToolbar)
     {
-        foreach (var item in modernToolbar.Items)
+        Parallel.For(0, modernToolbar.Items.Count, (i) =>
         {
-            if (item.GetType() == typeof(ToolStripButton))
+            if (modernToolbar.Items[i] is ToolStripButton tItem)
             {
-                var tItem = item as ToolStripButton;
-                if (tItem is null) continue;
-
-                var tagModel = tItem.Tag as ToolbarItemTagModel;
-                if (tagModel is null) continue;
-
-                string langKey;
-                string hotkey;
-                if (tItem.Name == Toolbar.MainMenuButton.Name)
+                if (tItem.Tag is ToolbarItemTagModel tagModel)
                 {
-                    langKey = $"{Name}.MnuMain";
-                    hotkey = Config.GetHotkeyString(CurrentMenuHotkeys, nameof(MnuMain));
-                }
-                else
-                {
-                    langKey = $"{Name}.{tagModel.OnClick.Executable}";
-                    hotkey = Config.GetHotkeyString(CurrentMenuHotkeys, tagModel.OnClick.Executable);
-                }
-
-                if (Config.Language.TryGetValue(langKey, out string? value))
-                {
-                    tItem.Text = tItem.ToolTipText = value;
-
-                    if (!string.IsNullOrEmpty(hotkey))
+                    string langKey;
+                    string hotkey;
+                    if (tItem.Name == Toolbar.MainMenuButton.Name)
                     {
-                        tItem.ToolTipText += $" ({hotkey})";
+                        langKey = $"{Name}.MnuMain";
+                        hotkey = Config.GetHotkeyString(CurrentMenuHotkeys, nameof(MnuMain));
+                    }
+                    else
+                    {
+                        langKey = $"{Name}.{tagModel.OnClick.Executable}";
+                        hotkey = Config.GetHotkeyString(CurrentMenuHotkeys, tagModel.OnClick.Executable);
+                    }
+
+                    if (Config.Language.TryGetValue(langKey, out string? value))
+                    {
+                        tItem.Text = tItem.ToolTipText = value;
+
+                        if (!string.IsNullOrEmpty(hotkey))
+                        {
+                            tItem.ToolTipText += $" ({hotkey})";
+                        }
                     }
                 }
             }
-        }
-    }
-
-
-    /// <summary>
-    /// Load View Channels menu items
-    /// </summary>
-    private void LoadMnuViewChannelsSubItems()
-    {
-        // clear items
-        MnuViewChannels.DropDown.Items.Clear();
-
-        var newMenuIconHeight = this.ScaleToDpi(Const.MENU_ICON_HEIGHT);
-
-        // add new items
-        foreach (var channel in Enum.GetValues(typeof(ColorChannel)))
-        {
-            var channelName = Enum.GetName(typeof(ColorChannel), channel);
-            var mnu = new ToolStripRadioButtonMenuItem()
-            {
-                Text = Config.Language[$"{Name}.{nameof(MnuViewChannels)}._{channelName}"],
-                Tag = new ModernMenuItemTag()
-                {
-                    SingleSelect = true,
-                    ColorChannel = (ColorChannel)channel,
-                },
-                CheckOnClick = true,
-                Checked = (int)channel == (int)Local.ImageChannel,
-                ImageScaling = ToolStripItemImageScaling.None,
-                Image = new Bitmap(newMenuIconHeight, newMenuIconHeight),
-            };
-
-            mnu.Click += MnuViewChannelsItem_Click;
-            MnuViewChannels.DropDown.Items.Add(mnu);
-        }
-    }
-
-
-    private void MnuViewChannelsItem_Click(object? sender, EventArgs e)
-    {
-        var mnu = sender as ToolStripMenuItem;
-        if (mnu is null) return;
-
-        // get color channel from tag
-        if (mnu.Tag is ModernMenuItemTag tag
-            && tag.ColorChannel != null
-            && tag.ColorChannel.Value != Local.ImageChannel)
-        {
-            Local.ImageChannel = tag.ColorChannel.Value;
-            Local.Images.ImageChannel = tag.ColorChannel.Value;
-
-            // update the viewing image
-            _ = ViewNextCancellableAsync(0, true, true);
-
-            // update cached images
-            Local.Images.UpdateCache();
-
-            // reload state
-            LoadMnuViewChannelsSubItems();
-        }
+        });
     }
 
 
@@ -1052,6 +1018,7 @@ public partial class FrmMain
             nameof(MnuColorPicker),
             nameof(MnuCropTool),
             nameof(MnuFrameNav),
+            nameof(MnuLosslessCompression),
             nameof(MnuExternalToolsSeparator),
             nameof(MnuGetMoreTools),
         };
@@ -1314,13 +1281,13 @@ public partial class FrmMain
                 new ToggleAction(new(nameof(IG_AutoSetActualSize))));
 
             Config.MouseClickActions.Add(MouseClickEvent.WheelClick,
-                new ToggleAction(new(nameof(IG_Refresh))));
+                new ToggleAction(new(nameof(MnuRefresh))));
 
             Config.MouseClickActions.Add(MouseClickEvent.XButton1Click,
-                new ToggleAction(new(nameof(IG_ViewPreviousImage))));
+                new ToggleAction(new(nameof(MnuViewPrevious))));
 
             Config.MouseClickActions.Add(MouseClickEvent.XButton2Click,
-                new ToggleAction(new(nameof(IG_ViewNextImage))));
+                new ToggleAction(new(nameof(MnuViewNext))));
         }
     }
 

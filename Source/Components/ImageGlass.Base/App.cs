@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+using Microsoft.Win32;
 using System.Diagnostics;
 using System.Security.Principal;
 
@@ -92,6 +93,61 @@ public class App
         appDataDir = Path.Combine([.. newPaths]);
 
         return appDataDir;
+    }
+
+
+
+    /// <summary>
+    /// Checks if ImageGlass starts with OS
+    /// </summary>
+    public static bool CheckStartWithOs()
+    {
+        const string APP_NAME = "ImageGlass";
+        var regAppPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+
+
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(regAppPath);
+            var keyValue = key?.GetValue(APP_NAME)?.ToString();
+
+            var isEnabled = !string.IsNullOrWhiteSpace(keyValue);
+
+            return isEnabled;
+        }
+        catch { }
+
+        return false;
+    }
+
+
+    /// <summary>
+    /// Sets or unsets ImageGlass to start with OS in <see cref="IgCommands.STARTUP_BOOST"/> mode.
+    /// Returns <c>null</c> if successful.
+    /// </summary>
+    public static Exception? SetStartWithOs(bool enable)
+    {
+        Exception? error = null;
+        const string APP_NAME = "ImageGlass";
+        var regAppPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(regAppPath, true);
+
+            if (enable)
+            {
+                key?.SetValue(APP_NAME, $"\"{App.IGExePath}\" {IgCommands.STARTUP_BOOST}");
+            }
+            else
+            {
+                key?.DeleteValue(APP_NAME);
+            }
+        }
+        catch (Exception ex) { error = ex; }
+
+
+        return error;
     }
 
 

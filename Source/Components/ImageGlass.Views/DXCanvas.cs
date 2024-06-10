@@ -40,6 +40,7 @@ public partial class DXCanvas : DXControl
     // Private properties
     #region Private properties
 
+    private IComObject<ID2D1Bitmap1>? _oriImageD2D = null; // original bitmap for color channel filter
     private IComObject<ID2D1Bitmap1>? _imageD2D = null;
     private Bitmap? _imageGdiPlus = null;
     private CancellationTokenSource? _msgTokenSrc;
@@ -1559,16 +1560,22 @@ public partial class DXCanvas : DXControl
 
         if (EnableDebug)
         {
+            var text = "";
             var monitor = DirectN.Monitor.FromWindow(TopLevelControl.Handle);
 
-            var text = $"Monitor={monitor.Bounds.Size}; Dpi={DeviceDpi} ({(int)monitor.ScaleFactor}%); Renderer={Source}";
+            if (monitor != null)
+            {
+                text = $"Monitor={monitor?.Bounds.Size}; {(int)monitor.ScaleFactor}%; ";
+            }
+
+            text = $"Dpi={DeviceDpi}; Renderer={Source}; ";
             if (UseWebview2)
             {
-                text += $"; v{Web2.Webview2Version}";
+                text += $"v{Web2.Webview2Version}; ";
             }
             else
             {
-                text += $"; Opacity={_imageOpacity}; FPS={FPS}";
+                text += $"Opacity={_imageOpacity}; FPS={FPS}; ";
             }
 
             var textSize = g.MeasureText(text, Font.Name, Font.Size, textDpi: DeviceDpi);
@@ -2961,7 +2968,8 @@ public partial class DXCanvas : DXControl
         float opacityStep = 0.05f,
         bool isForPreview = false,
         bool autoAnimate = true,
-        ImgTransform? transforms = null)
+        ImgTransform? transforms = null,
+        ColorChannels channels = ColorChannels.RGBA)
     {
         // reset variables
         _imageDrawingState = ImageDrawingState.NotStarted;
@@ -2979,7 +2987,6 @@ public partial class DXCanvas : DXControl
 
         // emit OnImageChanging event
         ImageLoading?.Invoke(this, EventArgs.Empty);
-
 
         // Check and preprocess image info
         LoadImageData(imgData, frameIndex, autoAnimate);
@@ -3002,7 +3009,7 @@ public partial class DXCanvas : DXControl
                     var frame = animatedImg.GetFrame((int)frameIndex);
                     var wicSrc = BHelper.ToWicBitmapSource(frame.Bitmap as Bitmap);
 
-                    _imageD2D = DXHelper.ToD2D1Bitmap(Device, wicSrc);
+                    _oriImageD2D = DXHelper.ToD2D1Bitmap(Device, wicSrc);
                 }
                 // viewing single frame of animated GIF
                 else if (imgData.Source is Bitmap bmp && !autoAnimate)
@@ -3010,19 +3017,31 @@ public partial class DXCanvas : DXControl
                     bmp.SetActiveTimeFrame((int)frameIndex);
                     var wicSrc = BHelper.ToWicBitmapSource(bmp);
 
-                    _imageD2D = DXHelper.ToD2D1Bitmap(Device, wicSrc);
+                    _oriImageD2D = DXHelper.ToD2D1Bitmap(Device, wicSrc);
                 }
                 // viewing non-animated multiple frames
                 else if (imgData?.Source is WicBitmapDecoder decoder)
                 {
                     var frame = decoder.GetFrame((int)frameIndex);
-                    _imageD2D = DXHelper.ToD2D1Bitmap(Device, frame);
+                    _oriImageD2D = DXHelper.ToD2D1Bitmap(Device, frame);
                 }
                 // viewing single frame
                 else
                 {
-                    _imageD2D = DXHelper.ToD2D1Bitmap(Device, imgData.Image);
+                    _oriImageD2D = DXHelper.ToD2D1Bitmap(Device, imgData.Image);
                 }
+
+                // apply color channels filter
+                if (channels != ColorChannels.RGBA)
+                {
+                    // use original image to create color channel filter
+                    FilterColorChannels(channels, false);
+                }
+                else
+                {
+                    _imageD2D = _oriImageD2D.Clone(Device);
+                }
+
 
                 // apply transformations
                 if (transforms != null)
@@ -3030,6 +3049,7 @@ public partial class DXCanvas : DXControl
                     _ = RotateImage(transforms.Rotation, false);
                     _ = FlipImage(transforms.Flips, false);
                 }
+
 
                 Source = ImageSource.Direct2D;
             }
@@ -3106,7 +3126,7 @@ public partial class DXCanvas : DXControl
     /// </summary>
     public bool RotateImage(float degree, bool requestRerender = true)
     {
-        if (_imageD2D == null || degree == 0 || degree == 360) return false;
+        if (_imageD2D == null || degree == 0 || degree == 360 || IsImageAnimating) return false;
 
         // create effect
         using var effect = Device.CreateEffect(Direct2DEffects.CLSID_D2D12DAffineTransform);
@@ -3146,7 +3166,7 @@ public partial class DXCanvas : DXControl
         // render the transformation
         if (requestRerender)
         {
-            Refresh();
+            Refresh(resetZoom: false);
         }
 
         return true;
@@ -3158,7 +3178,7 @@ public partial class DXCanvas : DXControl
     /// </summary>
     public bool FlipImage(FlipOptions flips, bool requestRerender = true)
     {
-        if (_imageD2D == null) return false;
+        if (_imageD2D == null || IsImageAnimating) return false;
 
         // create effect
         using var effect = Device.CreateEffect(Direct2DEffects.CLSID_D2D12DAffineTransform);
@@ -3186,7 +3206,71 @@ public partial class DXCanvas : DXControl
         // render the transformation
         if (requestRerender)
         {
-            Refresh();
+            Refresh(resetZoom: false);
+        }
+
+        return true;
+    }
+
+
+    /// <summary>
+    /// Filters image color channels.
+    /// </summary>
+    public bool FilterColorChannels(ColorChannels colors, bool requestRerender = true)
+    {
+        if (_oriImageD2D == null || IsImageAnimating) return false;
+
+
+        // create effect
+        using var effect = Device.CreateEffect(Direct2DEffects.CLSID_D2D1ColorMatrix);
+        effect.SetInput(_oriImageD2D, 0);
+
+
+        var redOnly = colors.HasFlag(ColorChannels.R)
+            && !colors.HasFlag(ColorChannels.G)
+            && !colors.HasFlag(ColorChannels.B);
+        var greenOnly = colors.HasFlag(ColorChannels.G)
+            && !colors.HasFlag(ColorChannels.R)
+            && !colors.HasFlag(ColorChannels.B);
+        var blueOnly = colors.HasFlag(ColorChannels.B)
+            && !colors.HasFlag(ColorChannels.G)
+            && !colors.HasFlag(ColorChannels.R);
+        var alphaOnly = colors == ColorChannels.A;
+        var ignoreAlpha = alphaOnly || !colors.HasFlag(ColorChannels.A);
+
+
+        var red = !alphaOnly && colors.HasFlag(ColorChannels.R) ? 1f : 0f;
+        var green = !alphaOnly && colors.HasFlag(ColorChannels.G) ? 1f : 0f;
+        var blue = !alphaOnly && colors.HasFlag(ColorChannels.B) ? 1f : 0f;
+
+        var mRed = redOnly ? 1f : 0f;
+        var mGreen = greenOnly ? 1f : 0f;
+        var mBlue = blueOnly ? 1f : 0f;
+        var mAlpha = alphaOnly ? 1f : 0f;
+
+
+        var matrix = new D2D_MATRIX_5X4_F()
+        {
+            #pragma warning disable format
+            _11 = red,      _12 = mRed,     _13 = mRed,     _14 = 0,
+            _21 = mGreen,   _22 = green,    _23 = mGreen,   _24 = 0,
+            _31 = mBlue,    _32 = mBlue,    _33 = blue,     _34 = 0,
+            _41 = 0,        _42 = 0,        _43 = 0,        _44 = 1f,
+            _51 = mAlpha,   _52 = mAlpha,   _53 = mAlpha,   _54 = 0,
+            #pragma warning restore format
+        };
+        effect.SetValue((int)D2D1_COLORMATRIX_PROP.D2D1_COLORMATRIX_PROP_COLOR_MATRIX, matrix);
+
+
+        // apply the transformation
+        DXHelper.DisposeD2D1Bitmap(ref _imageD2D);
+        _imageD2D = effect.GetD2D1Bitmap1(Device, ignoreAlpha);
+
+
+        // render the transformation
+        if (requestRerender)
+        {
+            Refresh(resetZoom: false);
         }
 
         return true;
@@ -3217,6 +3301,17 @@ public partial class DXCanvas : DXControl
 
 
     /// <summary>
+    /// Gets the <see cref="WicBitmapSource"/> being rendered.
+    /// </summary>
+    public WicBitmapSource? GetRenderedBitmap()
+    {
+        var wicBmp = _imageD2D.ToWicBitmapSource(Device);
+
+        return wicBmp;
+    }
+
+
+    /// <summary>
     /// Disposes and set all image resources to <c>null</c>.
     /// </summary>
     public void DisposeImageResources()
@@ -3224,6 +3319,7 @@ public partial class DXCanvas : DXControl
         Source = ImageSource.Null;
 
         DXHelper.DisposeD2D1Bitmap(ref _imageD2D);
+        DXHelper.DisposeD2D1Bitmap(ref _oriImageD2D);
         DisposeAnimator();
 
         // *** Do not dispose the GDI Bitmap because it's a ref to the Local.Images

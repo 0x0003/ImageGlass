@@ -85,6 +85,16 @@ namespace ImageGlass
             MnuPanToBottom = new ToolStripMenuItem();
             MnuImage = new ToolStripMenuItem();
             MnuViewChannels = new ToolStripMenuItem();
+            MnuViewChannelRGB = new ToolStripMenuItem();
+            MnuViewChannelRedAlpha = new ToolStripMenuItem();
+            MnuViewChannelGreenAlpha = new ToolStripMenuItem();
+            MnuViewChannelBlueAlpha = new ToolStripMenuItem();
+            MnuViewChannelAlphaOnly = new ToolStripMenuItem();
+            toolStripSeparator2 = new ToolStripSeparator();
+            MnuViewChannelRed = new ToolStripMenuItem();
+            MnuViewChannelGreen = new ToolStripMenuItem();
+            MnuViewChannelBlue = new ToolStripMenuItem();
+            MnuViewChannelAlpha = new ToolStripMenuItem();
             MnuLoadingOrders = new ToolStripMenuItem();
             toolStripMenuItem16 = new ToolStripSeparator();
             MnuRotateLeft = new ToolStripMenuItem();
@@ -124,10 +134,12 @@ namespace ImageGlass
             MnuToggleCheckerboard = new ToolStripMenuItem();
             toolStripMenuItem20 = new ToolStripSeparator();
             MnuToggleTopMost = new ToolStripMenuItem();
+            MnuChangeBackgroundColor = new ToolStripMenuItem();
             MnuTools = new ToolStripMenuItem();
             MnuColorPicker = new ToolStripMenuItem();
             MnuCropTool = new ToolStripMenuItem();
             MnuFrameNav = new ToolStripMenuItem();
+            MnuLosslessCompression = new ToolStripMenuItem();
             MnuExternalToolsSeparator = new ToolStripSeparator();
             MnuGetMoreTools = new ToolStripMenuItem();
             toolStripMenuItem8 = new ToolStripSeparator();
@@ -152,6 +164,7 @@ namespace ImageGlass
             toolStripMenuItem4 = new ToolStripSeparator();
             MnuSubMenu = new UI.ModernMenu(components);
             itemToPreserveSpaceToolStripMenuItem = new ToolStripMenuItem();
+            MnuViewChannelRGBA = new ToolStripMenuItem();
             MnuMain.SuspendLayout();
             MnuContext.SuspendLayout();
             MnuSubMenu.SuspendLayout();
@@ -174,7 +187,7 @@ namespace ImageGlass
             Toolbar.RenderMode = ToolStripRenderMode.System;
             Toolbar.ShowItemToolTips = false;
             Toolbar.ShowMainMenuButton = false;
-            Toolbar.Size = new Size(917, 25);
+            Toolbar.Size = new Size(898, 25);
             Toolbar.TabIndex = 1;
             Toolbar.Theme = null;
             Toolbar.ItemClicked += Toolbar_ItemClicked;
@@ -186,7 +199,7 @@ namespace ImageGlass
             MnuMain.Items.AddRange(new ToolStripItem[] { MnuFile, MnuNavigation, MnuZoom, MnuPanning, MnuImage, MnuClipboard, toolStripMenuItem6, MnuWindowFit, MnuFrameless, MnuFullScreen, MnuSlideshow, toolStripMenuItem7, MnuLayout, MnuTools, toolStripMenuItem8, MnuSettings, MnuHelp, toolStripMenuItem9, MnuExit });
             MnuMain.Name = "MnuMain";
             MnuMain.RenderMode = ToolStripRenderMode.System;
-            MnuMain.Size = new Size(166, 628);
+            MnuMain.Size = new Size(199, 650);
             MnuMain.Opening += MnuMain_Opening;
             // 
             // MnuFile
@@ -194,7 +207,7 @@ namespace ImageGlass
             MnuFile.DropDownItems.AddRange(new ToolStripItem[] { MnuOpenFile, MnuNewWindow, MnuSave, MnuSaveAs, toolStripMenuItem10, MnuOpenWith, MnuEdit, MnuPrint, MnuShare, toolStripMenuItem12, MnuRefresh, MnuReload, MnuReloadImageList, MnuUnload });
             MnuFile.ImageScaling = ToolStripItemImageScaling.None;
             MnuFile.Name = "MnuFile";
-            MnuFile.Size = new Size(165, 40);
+            MnuFile.Size = new Size(198, 40);
             MnuFile.Text = "[File]";
             // 
             // MnuOpenFile
@@ -298,7 +311,7 @@ namespace ImageGlass
             MnuNavigation.ImageAlign = ContentAlignment.MiddleLeft;
             MnuNavigation.ImageScaling = ToolStripItemImageScaling.None;
             MnuNavigation.Name = "MnuNavigation";
-            MnuNavigation.Size = new Size(165, 40);
+            MnuNavigation.Size = new Size(198, 40);
             MnuNavigation.Text = "[Navigation]";
             // 
             // MnuViewNext
@@ -381,7 +394,7 @@ namespace ImageGlass
             MnuZoom.ImageAlign = ContentAlignment.MiddleLeft;
             MnuZoom.ImageScaling = ToolStripItemImageScaling.None;
             MnuZoom.Name = "MnuZoom";
-            MnuZoom.Size = new Size(165, 40);
+            MnuZoom.Size = new Size(198, 40);
             MnuZoom.Text = "[Zoom]";
             // 
             // MnuZoomIn
@@ -478,7 +491,7 @@ namespace ImageGlass
             MnuPanning.ImageAlign = ContentAlignment.MiddleLeft;
             MnuPanning.ImageScaling = ToolStripItemImageScaling.None;
             MnuPanning.Name = "MnuPanning";
-            MnuPanning.Size = new Size(165, 40);
+            MnuPanning.Size = new Size(198, 40);
             MnuPanning.Text = "[Panning]";
             // 
             // MnuPanLeft
@@ -549,14 +562,104 @@ namespace ImageGlass
             MnuImage.ImageAlign = ContentAlignment.MiddleLeft;
             MnuImage.ImageScaling = ToolStripItemImageScaling.None;
             MnuImage.Name = "MnuImage";
-            MnuImage.Size = new Size(165, 40);
+            MnuImage.Size = new Size(198, 40);
             MnuImage.Text = "[Image]";
             // 
             // MnuViewChannels
             // 
+            MnuViewChannels.DropDownItems.AddRange(new ToolStripItem[] { MnuViewChannelRed, MnuViewChannelGreen, MnuViewChannelBlue, MnuViewChannelAlpha, toolStripSeparator2, MnuViewChannelRGBA, MnuViewChannelRGB, MnuViewChannelRedAlpha, MnuViewChannelGreenAlpha, MnuViewChannelBlueAlpha, MnuViewChannelAlphaOnly });
             MnuViewChannels.Name = "MnuViewChannels";
             MnuViewChannels.Size = new Size(251, 22);
             MnuViewChannels.Text = "[Channels]";
+            // 
+            // MnuViewChannelRGB
+            // 
+            MnuViewChannelRGB.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelRGB.Name = "MnuViewChannelRGB";
+            MnuViewChannelRGB.Size = new Size(180, 22);
+            MnuViewChannelRGB.Text = "RGB";
+            MnuViewChannelRGB.Click += MnuViewChannelRGB_Click;
+            // 
+            // MnuViewChannelRedAlpha
+            // 
+            MnuViewChannelRedAlpha.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelRedAlpha.Name = "MnuViewChannelRedAlpha";
+            MnuViewChannelRedAlpha.Size = new Size(180, 22);
+            MnuViewChannelRedAlpha.Text = "R + A";
+            MnuViewChannelRedAlpha.Click += MnuViewChannelRedAlpha_Click;
+            // 
+            // MnuViewChannelGreenAlpha
+            // 
+            MnuViewChannelGreenAlpha.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelGreenAlpha.Name = "MnuViewChannelGreenAlpha";
+            MnuViewChannelGreenAlpha.Size = new Size(180, 22);
+            MnuViewChannelGreenAlpha.Text = "G + A";
+            MnuViewChannelGreenAlpha.Click += MnuViewChannelGreenAlpha_Click;
+            // 
+            // MnuViewChannelBlueAlpha
+            // 
+            MnuViewChannelBlueAlpha.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelBlueAlpha.Name = "MnuViewChannelBlueAlpha";
+            MnuViewChannelBlueAlpha.Size = new Size(180, 22);
+            MnuViewChannelBlueAlpha.Text = "B + A";
+            MnuViewChannelBlueAlpha.Click += MnuViewChannelBlueAlpha_Click;
+            // 
+            // MnuViewChannelAlphaOnly
+            // 
+            MnuViewChannelAlphaOnly.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelAlphaOnly.Name = "MnuViewChannelAlphaOnly";
+            MnuViewChannelAlphaOnly.Size = new Size(180, 22);
+            MnuViewChannelAlphaOnly.Text = "A";
+            MnuViewChannelAlphaOnly.Click += MnuViewChannelAlphaOnly_Click;
+            // 
+            // toolStripSeparator2
+            // 
+            toolStripSeparator2.Name = "toolStripSeparator2";
+            toolStripSeparator2.Size = new Size(177, 6);
+            // 
+            // MnuViewChannelRed
+            // 
+            MnuViewChannelRed.Checked = true;
+            MnuViewChannelRed.CheckOnClick = true;
+            MnuViewChannelRed.CheckState = CheckState.Checked;
+            MnuViewChannelRed.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelRed.Name = "MnuViewChannelRed";
+            MnuViewChannelRed.Size = new Size(180, 22);
+            MnuViewChannelRed.Text = "R";
+            MnuViewChannelRed.Click += MnuViewChannelRed_Click;
+            // 
+            // MnuViewChannelGreen
+            // 
+            MnuViewChannelGreen.Checked = true;
+            MnuViewChannelGreen.CheckOnClick = true;
+            MnuViewChannelGreen.CheckState = CheckState.Checked;
+            MnuViewChannelGreen.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelGreen.Name = "MnuViewChannelGreen";
+            MnuViewChannelGreen.Size = new Size(180, 22);
+            MnuViewChannelGreen.Text = "G";
+            MnuViewChannelGreen.Click += MnuViewChannelGreen_Click;
+            // 
+            // MnuViewChannelBlue
+            // 
+            MnuViewChannelBlue.Checked = true;
+            MnuViewChannelBlue.CheckOnClick = true;
+            MnuViewChannelBlue.CheckState = CheckState.Checked;
+            MnuViewChannelBlue.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelBlue.Name = "MnuViewChannelBlue";
+            MnuViewChannelBlue.Size = new Size(180, 22);
+            MnuViewChannelBlue.Text = "B";
+            MnuViewChannelBlue.Click += MnuViewChannelBlue_Click;
+            // 
+            // MnuViewChannelAlpha
+            // 
+            MnuViewChannelAlpha.Checked = true;
+            MnuViewChannelAlpha.CheckOnClick = true;
+            MnuViewChannelAlpha.CheckState = CheckState.Checked;
+            MnuViewChannelAlpha.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelAlpha.Name = "MnuViewChannelAlpha";
+            MnuViewChannelAlpha.Size = new Size(180, 22);
+            MnuViewChannelAlpha.Text = "A";
+            MnuViewChannelAlpha.Click += MnuViewChannelAlpha_Click;
             // 
             // MnuLoadingOrders
             // 
@@ -682,7 +785,7 @@ namespace ImageGlass
             MnuClipboard.ImageAlign = ContentAlignment.MiddleLeft;
             MnuClipboard.ImageScaling = ToolStripItemImageScaling.None;
             MnuClipboard.Name = "MnuClipboard";
-            MnuClipboard.Size = new Size(165, 40);
+            MnuClipboard.Size = new Size(198, 40);
             MnuClipboard.Text = "[Clipboard]";
             // 
             // MnuPasteImage
@@ -740,14 +843,14 @@ namespace ImageGlass
             // toolStripMenuItem6
             // 
             toolStripMenuItem6.Name = "toolStripMenuItem6";
-            toolStripMenuItem6.Size = new Size(162, 6);
+            toolStripMenuItem6.Size = new Size(195, 6);
             // 
             // MnuWindowFit
             // 
             MnuWindowFit.CheckOnClick = true;
             MnuWindowFit.ImageScaling = ToolStripItemImageScaling.None;
             MnuWindowFit.Name = "MnuWindowFit";
-            MnuWindowFit.Size = new Size(165, 40);
+            MnuWindowFit.Size = new Size(198, 40);
             MnuWindowFit.Text = "[Window fit]";
             MnuWindowFit.Click += MnuWindowFit_Click;
             // 
@@ -758,7 +861,7 @@ namespace ImageGlass
             MnuFrameless.ImageAlign = ContentAlignment.MiddleLeft;
             MnuFrameless.ImageScaling = ToolStripItemImageScaling.None;
             MnuFrameless.Name = "MnuFrameless";
-            MnuFrameless.Size = new Size(165, 40);
+            MnuFrameless.Size = new Size(198, 40);
             MnuFrameless.Text = "[Frameless]";
             MnuFrameless.Click += MnuFrameless_Click;
             // 
@@ -769,7 +872,7 @@ namespace ImageGlass
             MnuFullScreen.ImageAlign = ContentAlignment.MiddleLeft;
             MnuFullScreen.ImageScaling = ToolStripItemImageScaling.None;
             MnuFullScreen.Name = "MnuFullScreen";
-            MnuFullScreen.Size = new Size(165, 40);
+            MnuFullScreen.Size = new Size(198, 40);
             MnuFullScreen.Text = "[Full screen]";
             MnuFullScreen.Click += MnuFullScreen_Click;
             // 
@@ -780,23 +883,23 @@ namespace ImageGlass
             MnuSlideshow.ImageAlign = ContentAlignment.MiddleLeft;
             MnuSlideshow.ImageScaling = ToolStripItemImageScaling.None;
             MnuSlideshow.Name = "MnuSlideshow";
-            MnuSlideshow.Size = new Size(165, 40);
+            MnuSlideshow.Size = new Size(198, 40);
             MnuSlideshow.Text = "[Slideshow]";
             MnuSlideshow.Click += MnuSlideshow_Click;
             // 
             // toolStripMenuItem7
             // 
             toolStripMenuItem7.Name = "toolStripMenuItem7";
-            toolStripMenuItem7.Size = new Size(162, 6);
+            toolStripMenuItem7.Size = new Size(195, 6);
             // 
             // MnuLayout
             // 
-            MnuLayout.DropDownItems.AddRange(new ToolStripItem[] { MnuToggleToolbar, MnuToggleGallery, MnuToggleCheckerboard, toolStripMenuItem20, MnuToggleTopMost });
+            MnuLayout.DropDownItems.AddRange(new ToolStripItem[] { MnuToggleToolbar, MnuToggleGallery, MnuToggleCheckerboard, toolStripMenuItem20, MnuToggleTopMost, MnuChangeBackgroundColor });
             MnuLayout.Image = (Image)resources.GetObject("MnuLayout.Image");
             MnuLayout.ImageAlign = ContentAlignment.MiddleLeft;
             MnuLayout.ImageScaling = ToolStripItemImageScaling.None;
             MnuLayout.Name = "MnuLayout";
-            MnuLayout.Size = new Size(165, 40);
+            MnuLayout.Size = new Size(198, 40);
             MnuLayout.Text = "[Layout]";
             // 
             // MnuToggleToolbar
@@ -836,21 +939,28 @@ namespace ImageGlass
             MnuToggleTopMost.Text = "[Keep window always on top]";
             MnuToggleTopMost.Click += MnuToggleTopMost_Click;
             // 
+            // MnuChangeBackgroundColor
+            // 
+            MnuChangeBackgroundColor.Name = "MnuChangeBackgroundColor";
+            MnuChangeBackgroundColor.Size = new Size(247, 22);
+            MnuChangeBackgroundColor.Text = "[Change background color]";
+            MnuChangeBackgroundColor.Click += MnuChangeBackgroundColor_Click;
+            // 
             // MnuTools
             // 
-            MnuTools.DropDownItems.AddRange(new ToolStripItem[] { MnuColorPicker, MnuCropTool, MnuFrameNav, MnuExternalToolsSeparator, MnuGetMoreTools });
+            MnuTools.DropDownItems.AddRange(new ToolStripItem[] { MnuColorPicker, MnuCropTool, MnuFrameNav, MnuLosslessCompression, MnuExternalToolsSeparator, MnuGetMoreTools });
             MnuTools.Image = (Image)resources.GetObject("MnuTools.Image");
             MnuTools.ImageAlign = ContentAlignment.MiddleLeft;
             MnuTools.ImageScaling = ToolStripItemImageScaling.None;
             MnuTools.Name = "MnuTools";
-            MnuTools.Size = new Size(165, 40);
+            MnuTools.Size = new Size(198, 40);
             MnuTools.Text = "[Tools]";
             // 
             // MnuColorPicker
             // 
             MnuColorPicker.CheckOnClick = true;
             MnuColorPicker.Name = "MnuColorPicker";
-            MnuColorPicker.Size = new Size(177, 22);
+            MnuColorPicker.Size = new Size(211, 22);
             MnuColorPicker.Text = "[Color picker]";
             MnuColorPicker.Click += MnuColorPicker_Click;
             // 
@@ -858,7 +968,7 @@ namespace ImageGlass
             // 
             MnuCropTool.CheckOnClick = true;
             MnuCropTool.Name = "MnuCropTool";
-            MnuCropTool.Size = new Size(177, 22);
+            MnuCropTool.Size = new Size(211, 22);
             MnuCropTool.Text = "[Cropping]";
             MnuCropTool.Click += MnuCropTool_Click;
             // 
@@ -866,27 +976,34 @@ namespace ImageGlass
             // 
             MnuFrameNav.CheckOnClick = true;
             MnuFrameNav.Name = "MnuFrameNav";
-            MnuFrameNav.Size = new Size(177, 22);
+            MnuFrameNav.Size = new Size(211, 22);
             MnuFrameNav.Text = "[Frame navigation]";
             MnuFrameNav.Click += MnuFrameNav_Click;
+            // 
+            // MnuLosslessCompression
+            // 
+            MnuLosslessCompression.Name = "MnuLosslessCompression";
+            MnuLosslessCompression.Size = new Size(211, 22);
+            MnuLosslessCompression.Text = "[Lossless compression]";
+            MnuLosslessCompression.Click += MnuLosslessCompression_Click;
             // 
             // MnuExternalToolsSeparator
             // 
             MnuExternalToolsSeparator.Name = "MnuExternalToolsSeparator";
-            MnuExternalToolsSeparator.Size = new Size(174, 6);
+            MnuExternalToolsSeparator.Size = new Size(208, 6);
             // 
             // MnuGetMoreTools
             // 
             MnuGetMoreTools.ImageScaling = ToolStripItemImageScaling.None;
             MnuGetMoreTools.Name = "MnuGetMoreTools";
-            MnuGetMoreTools.Size = new Size(177, 22);
+            MnuGetMoreTools.Size = new Size(211, 22);
             MnuGetMoreTools.Text = "[Get more tools]";
             MnuGetMoreTools.Click += MnuGetMoreTools_Click;
             // 
             // toolStripMenuItem8
             // 
             toolStripMenuItem8.Name = "toolStripMenuItem8";
-            toolStripMenuItem8.Size = new Size(162, 6);
+            toolStripMenuItem8.Size = new Size(195, 6);
             // 
             // MnuSettings
             // 
@@ -894,7 +1011,7 @@ namespace ImageGlass
             MnuSettings.ImageAlign = ContentAlignment.MiddleLeft;
             MnuSettings.ImageScaling = ToolStripItemImageScaling.None;
             MnuSettings.Name = "MnuSettings";
-            MnuSettings.Size = new Size(165, 40);
+            MnuSettings.Size = new Size(198, 40);
             MnuSettings.Text = "[Settings]";
             MnuSettings.Click += MnuSettings_Click;
             // 
@@ -905,7 +1022,7 @@ namespace ImageGlass
             MnuHelp.ImageAlign = ContentAlignment.MiddleLeft;
             MnuHelp.ImageScaling = ToolStripItemImageScaling.None;
             MnuHelp.Name = "MnuHelp";
-            MnuHelp.Size = new Size(165, 40);
+            MnuHelp.Size = new Size(198, 40);
             MnuHelp.Text = "[Help]";
             // 
             // MnuAbout
@@ -958,7 +1075,7 @@ namespace ImageGlass
             // toolStripMenuItem9
             // 
             toolStripMenuItem9.Name = "toolStripMenuItem9";
-            toolStripMenuItem9.Size = new Size(162, 6);
+            toolStripMenuItem9.Size = new Size(195, 6);
             // 
             // MnuExit
             // 
@@ -966,7 +1083,7 @@ namespace ImageGlass
             MnuExit.ImageAlign = ContentAlignment.MiddleLeft;
             MnuExit.ImageScaling = ToolStripItemImageScaling.None;
             MnuExit.Name = "MnuExit";
-            MnuExit.Size = new Size(165, 40);
+            MnuExit.Size = new Size(198, 40);
             MnuExit.Text = "[Exit]";
             MnuExit.Click += MnuExit_Click;
             // 
@@ -982,7 +1099,7 @@ namespace ImageGlass
             PicMain.Margin = new Padding(0);
             PicMain.Name = "PicMain";
             PicMain.RequestUpdateFrame = false;
-            PicMain.Size = new Size(917, 336);
+            PicMain.Size = new Size(898, 310);
             PicMain.TabIndex = 2;
             PicMain.OnZoomChanged += PicMain_OnZoomChanged;
             PicMain.OnNavLeftClicked += PicMain_OnNavLeftClicked;
@@ -1006,7 +1123,7 @@ namespace ImageGlass
             Gallery.Dock = DockStyle.Bottom;
             Gallery.EnableKeyNavigation = true;
             Gallery.EnableTransparent = true;
-            Gallery.Location = new Point(0, 336);
+            Gallery.Location = new Point(0, 310);
             Gallery.Margin = new Padding(0);
             Gallery.Name = "Gallery";
             Gallery.PersistentCacheDirectory = "";
@@ -1014,7 +1131,7 @@ namespace ImageGlass
             Gallery.Resizer = Base.WinApi.ResizerType.None;
             Gallery.ResizerSize = 8;
             Gallery.RetryOnError = false;
-            Gallery.Size = new Size(917, 200);
+            Gallery.Size = new Size(898, 200);
             Gallery.TabIndex = 0;
             Gallery.ThumbnailSize = new Size(70, 70);
             Gallery.View = ImageGlass.Gallery.View.HorizontalStrip;
@@ -1027,7 +1144,7 @@ namespace ImageGlass
             MnuContext.ImageScalingSize = new Size(22, 22);
             MnuContext.Items.AddRange(new ToolStripItem[] { itemToPreserveTheSpaceToolStripMenuItem });
             MnuContext.Name = "MnuContext";
-            MnuContext.Size = new Size(233, 48);
+            MnuContext.Size = new Size(233, 26);
             MnuContext.Opening += MnuContext_Opening;
             // 
             // itemToPreserveTheSpaceToolStripMenuItem
@@ -1072,13 +1189,21 @@ namespace ImageGlass
             itemToPreserveSpaceToolStripMenuItem.Size = new Size(210, 22);
             itemToPreserveSpaceToolStripMenuItem.Text = "item to preserve space";
             // 
+            // MnuViewChannelRGBA
+            // 
+            MnuViewChannelRGBA.ImageScaling = ToolStripItemImageScaling.None;
+            MnuViewChannelRGBA.Name = "MnuViewChannelRGBA";
+            MnuViewChannelRGBA.Size = new Size(180, 22);
+            MnuViewChannelRGBA.Text = "RGBA";
+            MnuViewChannelRGBA.Click += MnuViewChannelRGBA_Click;
+            // 
             // FrmMain
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(192, 192, 255);
             BackgroundImageLayout = ImageLayout.None;
-            ClientSize = new Size(917, 536);
+            ClientSize = new Size(898, 510);
             Controls.Add(Toolbar);
             Controls.Add(PicMain);
             Controls.Add(Gallery);
@@ -1221,5 +1346,18 @@ namespace ImageGlass
         public ToolStripMenuItem MnuUnload;
         private ToolStripMenuItem MnuGetMoreTools;
         private ToolStripSeparator MnuExternalToolsSeparator;
+        public ToolStripMenuItem MnuLosslessCompression;
+        public ToolStripMenuItem MnuChangeBackgroundColor;
+        public ToolStripMenuItem MnuViewChannelRed;
+        public ToolStripMenuItem MnuViewChannelGreen;
+        public ToolStripMenuItem MnuViewChannelBlue;
+        public ToolStripMenuItem MnuViewChannelAlpha;
+        public ToolStripMenuItem MnuViewChannelRedAlpha;
+        public ToolStripMenuItem MnuViewChannelGreenAlpha;
+        public ToolStripMenuItem MnuViewChannelBlueAlpha;
+        public ToolStripMenuItem MnuViewChannelAlphaOnly;
+        private ToolStripSeparator toolStripSeparator2;
+        public ToolStripMenuItem MnuViewChannelRGB;
+        public ToolStripMenuItem MnuViewChannelRGBA;
     }
 }
