@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 using ImageGlass.Base;
 using ImageGlass.Base.Photoing.Codecs;
 using ImageGlass.Base.WinApi;
+using ImageMagick;
 using WicNet;
 
 namespace ImageGlass.UI;
@@ -62,7 +63,6 @@ public class IgTheme : IDisposable
     #endregion
 
 
-    private int _iconHeight = Const.TOOLBAR_ICON_HEIGHT;
     private Bitmap? _defaultIcon = null;
 
 
@@ -176,12 +176,8 @@ public class IgTheme : IDisposable
     /// <summary>
     /// Initializes theme pack and reads the theme config file.
     /// </summary>
-    public IgTheme(
-        string themeFolderPath = "",
-        int? iconHeight = null)
+    public IgTheme(string themeFolderPath = "")
     {
-        _iconHeight = iconHeight ?? _iconHeight;
-
         // read theme config
         _ = ReadThemeConfig(themeFolderPath);
     }
@@ -260,7 +256,8 @@ public class IgTheme : IDisposable
                 // property is WicBitmapSource
                 if (prop?.PropertyType == typeof(WicBitmapSource))
                 {
-                    using var bmp = await PhotoCodec.GetThumbnailAsync(Path.Combine(FolderPath, value), _iconHeight, _iconHeight);
+                    var navBtnSize = Const.TOOLBAR_ICON_HEIGHT * 4;
+                    using var bmp = await PhotoCodec.GetThumbnailAsync(Path.Combine(FolderPath, value), navBtnSize, navBtnSize);
                     var wicBmp = BHelper.ToWicBitmapSource(bmp);
 
                     prop.SetValue(Settings, wicBmp);
@@ -388,7 +385,7 @@ public class IgTheme : IDisposable
     /// Theme pack's icon name or image file path.
     /// Example: <c>OpenFile</c>, or <c>.\Themes\Kobe\OpenFile.svg</c>
     /// </param>
-    public async Task<Bitmap> GetToolbarIconAsync(string? name)
+    public async Task<Bitmap> GetToolbarIconAsync(string? name, int iconHeight)
     {
         if (string.IsNullOrEmpty(name)) return null;
 
@@ -401,16 +398,16 @@ public class IgTheme : IDisposable
         try
         {
             var iconPath = GetToolbarIconFilePath(name);
+            var iconFile = !string.IsNullOrEmpty(iconPath) ? iconPath : name;
 
             // load icon from full path
-            icon = await PhotoCodec.GetThumbnailAsync(
-                !string.IsNullOrEmpty(iconPath) ? iconPath : name,
-                _iconHeight, _iconHeight);
+            using var imgM = await PhotoCodec.ReadSvgWithMagickAsync(iconFile, null, iconHeight, iconHeight);
+            icon = imgM.ToBitmap();
         }
         catch
         {
             // set empty icon
-            _defaultIcon ??= BHelper.CreateDefaultToolbarIcon(_iconHeight, Settings.IsDarkMode);
+            _defaultIcon ??= BHelper.CreateDefaultToolbarIcon(iconHeight, Settings.IsDarkMode);
             icon = _defaultIcon;
         }
 
@@ -425,9 +422,9 @@ public class IgTheme : IDisposable
     /// Theme pack's icon name or image file path.
     /// Example: <c>OpenFile</c>, or <c>.\Themes\Kobe\OpenFile.svg</c>
     /// </param>
-    public Bitmap GetToolbarIcon(string? name)
+    public Bitmap GetToolbarIcon(string? name, int iconHeight)
     {
-        return BHelper.RunSync(() => GetToolbarIconAsync(name));
+        return BHelper.RunSync(() => GetToolbarIconAsync(name, iconHeight));
     }
 
 }
