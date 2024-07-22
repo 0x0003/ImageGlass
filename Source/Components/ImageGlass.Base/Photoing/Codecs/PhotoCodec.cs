@@ -120,10 +120,7 @@ public static class PhotoCodec
                 // image color
                 meta.HasAlpha = imgC.Any(i => i.HasAlpha);
                 meta.ColorSpace = imgM.ColorSpace.ToString();
-
-                var isAnimatedExtension = ext == ".GIF" || ext == ".GIFV" || ext == ".WEBP";
-                meta.CanAnimate = imgC.Count > 1
-                    && (isAnimatedExtension || imgC.Any(i => i.GifDisposeMethod != GifDisposeMethod.Undefined));
+                meta.CanAnimate = CheckAnimatedFormat(imgC, ext);
 
 
                 // EXIF profile
@@ -475,6 +472,20 @@ public static class PhotoCodec
             {
                 imgData.SingleFrameImage.Quality = quality;
 
+                // resize ICO file if it's larger than 256
+                if (ext == ".ICO")
+                {
+                    var imgW = imgData.SingleFrameImage.Width;
+                    var imgH = imgData.SingleFrameImage.Height;
+                    const int MAX_ICON_SIZE = 256;
+
+                    if (imgW > MAX_ICON_SIZE || imgH > MAX_ICON_SIZE)
+                    {
+                        var iconSize = GetMaxImageRenderSize(imgW, imgH, MAX_ICON_SIZE);
+                        imgData.SingleFrameImage.Scale(iconSize.Width, iconSize.Height);
+                    }
+                }
+
                 await imgData.SingleFrameImage.WriteAsync(destFilePath, token);
             }
         }
@@ -782,14 +793,30 @@ public static class PhotoCodec
     #region Private functions
 
     /// <summary>
+    /// Checks if the image data is animated format.
+    /// </summary>
+    /// <param name="imgC"></param>
+    /// <param name="ext">File extension, e.g: <c>.gif</c></param>
+    private static bool CheckAnimatedFormat(MagickImageCollection imgC, string? ext)
+    {
+        var isAnimatedExtension = ext == ".GIF" || ext == ".GIFV" || ext == ".WEBP" || ext == ".JXL";
+
+        var canAnimate = imgC.Count > 1
+            && (isAnimatedExtension || imgC.Any(i => i.GifDisposeMethod != GifDisposeMethod.Undefined));
+
+        return canAnimate;
+    }
+
+
+    /// <summary>
     /// Read image file using stream
     /// </summary>
-    private static (bool loadSuccessful, IgImgData result, string ext, MagickReadSettings settings) ReadWithStream(string filePath, CodecReadOptions? options = null, ImgTransform? transform = null)
+    private static (bool loadSuccessful, IgImgData result, string ext, MagickReadSettings settings) ReadWithStream(string filePath, CodecReadOptions? options = null, ImgTransform? transform = null, IgMetadata? metadata = null)
     {
         options ??= new();
         var loadSuccessful = true;
 
-        var metadata = LoadMetadata(filePath, options);
+        metadata ??= LoadMetadata(filePath, options);
         var ext = Path.GetExtension(filePath).ToUpperInvariant();
         var settings = ParseSettings(options, false, filePath);
 
@@ -862,7 +889,7 @@ public static class PhotoCodec
                             return new AnimatedImgFrame(frame.Bitmap, duration);
                         });
 
-                        result.Source = new AnimatedImg(frames);
+                        result.Source = new AnimatedImg(frames, result.FrameCount);
                     }
                     else
                     {
@@ -944,6 +971,7 @@ public static class PhotoCodec
 
         // standardize first frame reading option
         result.FrameCount = imgColl.Count;
+        result.CanAnimate = CheckAnimatedFormat(imgColl, ext);
         bool readFirstFrameOnly;
 
         if (options.FirstFrameOnly == null)
@@ -1131,19 +1159,19 @@ public static class PhotoCodec
     /// <summary>
     /// Gets maximum image dimention.
     /// </summary>
-    private static Size GetMaxImageRenderSize(int srcWidth, int srcHeight)
+    private static Size GetMaxImageRenderSize(int srcWidth, int srcHeight, int maxSize = Const.MAX_IMAGE_DIMENSION)
     {
         var widthScale = 1f;
         var heightScale = 1f;
 
-        if (srcWidth > Const.MAX_IMAGE_DIMENSION)
+        if (srcWidth > maxSize)
         {
-            widthScale = 1f * Const.MAX_IMAGE_DIMENSION / srcWidth;
+            widthScale = 1f * maxSize / srcWidth;
         }
 
-        if (srcHeight > Const.MAX_IMAGE_DIMENSION)
+        if (srcHeight > maxSize)
         {
-            heightScale = 1f * Const.MAX_IMAGE_DIMENSION / srcHeight;
+            heightScale = 1f * maxSize / srcHeight;
         }
 
         var scale = Math.Min(widthScale, heightScale);
@@ -1203,6 +1231,8 @@ public static class PhotoCodec
             // resize the image
             ApplySizeSettings(refImgM, options);
 
+            // for HEIC/HEIF, PreserveOrientation must be false
+            // see https://github.com/d2phap/ImageGlass/issues/1928
             if (options.CorrectRotation) refImgM.AutoOrient();
 
             // if always apply color profile
@@ -1294,15 +1324,6 @@ public static class PhotoCodec
             settings.Format = MagickFormat.Rsvg;
             settings.BackgroundColor = MagickColors.Transparent;
         }
-        else if (ext.Equals(".HEIC", StringComparison.OrdinalIgnoreCase)
-            || ext.Equals(".HEIF", StringComparison.OrdinalIgnoreCase))
-        {
-            settings.SetDefines(new HeicReadDefines
-            {
-                PreserveOrientation = true,
-                DepthImage = true,
-            });
-        }
         else if (ext.Equals(".JP2", StringComparison.OrdinalIgnoreCase))
         {
             settings.SetDefines(new Jp2ReadDefines
@@ -1359,7 +1380,7 @@ public static class PhotoCodec
         // Fix RAW color
         settings.SetDefines(new DngReadDefines()
         {
-            UseCameraWhitebalance = true,
+            UseCameraWhiteBalance = true,
             OutputColor = DngOutputColor.SRGB,
             ReadThumbnail = true,
         });

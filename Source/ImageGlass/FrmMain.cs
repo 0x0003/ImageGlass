@@ -29,6 +29,7 @@ using ImageGlass.UI;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json;
 using WicNet;
 
 namespace ImageGlass;
@@ -1634,6 +1635,8 @@ public partial class FrmMain : ThemedForm
 
                     // get argument value
                     var argument = ac.Arguments.Skip(i).Take(1).FirstOrDefault();
+                    if (argument is JsonElement) argument = argument.ToString();
+
 
                     if (type.IsPrimitive || type.Equals(typeof(string)))
                     {
@@ -1697,7 +1700,7 @@ public partial class FrmMain : ThemedForm
                     .Select(i => $"{i}".Replace(Const.FILE_MACRO, $"\"{currentFilePath}\""))
                     .ToArray()) ?? string.Empty;
 
-            var result = await BHelper.RunExeCmd(ac.Executable, procArgs, true);
+            var result = await BHelper.RunExeCmd(ac.Executable, procArgs, false, false);
             if (result != IgExitCode.Done)
             {
                 error = new Exception(ZString.Format(Config.Language[$"{langPath}._Win32ExeError"], ac.Executable));

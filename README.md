@@ -13,12 +13,9 @@ ImageGlass - A lightweight, versatile image viewer
 ImageGlass is a lightweight software designed for seamless viewing of images in a clean and intuitive interface. With support for over 80 common image formats including `WEBP`, `GIF`, `SVG`, `PNG`, `JXL`, `HEIC`,... ImageGlass also offers advanced features that cater to the needs of both regular users and designers, making it the excellent tool to enhance workflow efficiency.
 
 
-## ⭐ Visit Us at [The Merge Conference](https://merge.berlin) on June 14, 2024
-<img src="https://github.com/d2phap/ImageGlass/assets/3154213/4ce5ccc7-0964-4a8a-a6ab-71e49bd2f5bd" height="200" />
-
-ImageGlass is proud to be one of the open-source projects that will be exhibiting at **[The Merge Conference](https://merge.berlin)** in Berlin, Germany. If you're attending, be sure to visit our booth and explore other amazing open-source projects!
-- 📅 **Date & Time: June 14, 2024 10:00 AM - 2:00 PM**
-- 🌐 https://merge.berlin
+<a href="https://www.imageglass.org/download" target="_blank" title="View screen shots">
+<img src="https://raw.githubusercontent.com/ImageGlass/releases/main/screenshots/v9.0/9.0_b1.webp" alt="ImageGlass 9.0.11.25" width="640">
+</a><br/>
 
 
 ## 📥 Download
@@ -38,30 +35,16 @@ ImageGlass is proud to be one of the open-source projects that will be exhibitin
 - Alternatively, you can use the one-time donation from [♥ GitHub Sponsor](https://github.com/sponsors/d2phap), then drop me a message in [ImageGlass Discord](https://discord.com/channels/818852544859209748/818852544859209751) or [email](https://imageglass.org/about), and I will send the code shortly.
 - ImageGlass Store provides the convenience of fast, easy installation onto all of your Windows devices along with fully automatic, behind-the-scenes updates with all the newest features, improvements, and fixes.
 
-<a href="https://www.imageglass.org/download" target="_blank" title="View screen shots">
-<img src="https://raw.githubusercontent.com/ImageGlass/releases/main/screenshots/v9.0/9.0_b1.webp" alt="ImageGlass 9.0.11.25" width="640">
-</a><br/>
-
-
-## 🛣 ImageGlass roadmap
-```mermaid
-gantt
-dateFormat YYYY-MM
-title ImageGlass Roadmap
-
-section v8 Official
-v8.x - Bugfix only             :crit, active, des1, 2023-08,2024-01
-v8.x - Critical bugfix only    :crit, active, des1, 2024-01,2024-04
-v8.x - End of support          :crit, milestone, m1, 2024-04, 1d
-
-section v9 Beta & RC
-v9.0 Beta 5              :done, des2, 2023-08,2023-10
-v9.0 RC                  :active, des2, 2023-10,2023-12
-
-section v9 Official
-v9.0 Official release    :milestone, m1, 2023-12, 1d
-v9 Official              :active, des2, 2023-12,2025-01
-```
+### Difference Between ImageGlass Classic and Store Release
+|  | ImageGlass Classic | [ImageGlass Store](https://apps.microsoft.com/detail/9N33VZK3C7TH?launch=true&cid=GitHubRelease&mode=full) | 
+| -- | -- | -- |
+| [All features](https://imageglass.org/docs/features), <br/>including Explorer sort order | ✅ | ✅ |
+| [Advanced configs<br/>for Power users](https://imageglass.org/docs/app-configs) | ✅ | ✅ |
+| Distribution | 🌐[ImageGlass.org](https://imageglass.org) and various sources | 🛍️[Microsoft Store](https://apps.microsoft.com/detail/9N33VZK3C7TH?launch=true&cid=GitHubRelease&mode=full) only |
+| Price | 🆓 Free | 🪙Fee, with a 7-day trial |
+| Commercial use | ✅, Recommended to [register](https://imageglass.org/license) | ✅ |
+| Auto-update | ❌, User-managed | ✅, Seamless auto-updates |
+| Hotfix update | ❌, Available in official releases only | ✅, Available as soon as they are fixed |
 
 
 ## 🪁 System Requirements
@@ -73,9 +56,8 @@ v9 Official              :active, des2, 2023-12,2025-01
 ## 👨‍💻 Development
 - Windows 11
 - Visual Studio 2022
-- .NET Framework 4.8 for v8.x, .NET 8 for v9.0
 
-The `develop` branch contains the latest commits of version 9 while the `prod` branch is for the final stable release. For the source code of version 8.0, you can refer to `v8` branch.
+The `develop` branch contains the latest commits while the `prod` branch is for the final stable release.
 
 
 ## 🗝️ License
@@ -116,9 +98,5 @@ Your support is greatly appreciated!
 
 <a href="https://www.paypal.me/d2phap" target="_blank" title="Buy me a beer?">
 <img src="https://img.shields.io/badge/PayPal-Donate%20$10%20-0070ba.svg?maxAge=3600&logo=paypal" height="30" alt="Buy me a beer?">
-</a>
-
-<a href="https://donorbox.org/imageglass" target="_blank" title="Wire transfer">
-<img src="https://img.shields.io/badge/DonorBox-@imageglass%20-005384.svg?maxAge=3600&logo=donorbox" height="30" alt="Wire transfer">
 </a>
 
